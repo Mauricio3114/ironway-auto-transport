@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fechar Semana</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    .grid { display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); }
+    .card { grid-column: span 3; }
+    .card.w6 { grid-column: span 6; }
+    .card.w12 { grid-column: span 12; }
+
+    .row { display:grid; gap:10px; grid-template-columns: repeat(12, 1fr); }
+    .col-3 { grid-column: span 3; }
+    .col-4 { grid-column: span 4; }
+    .col-6 { grid-column: span 6; }
+    .col-8 { grid-column: span 8; }
+    .col-12 { grid-column: span 12; }
+
+    label { display:block; font-size:12px; opacity:.78; margin:0 0 6px; }
+    .help { font-size:12px; opacity:.72; margin-top:6px; }
+    .hr { height:1px; background: rgba(148,163,184,.12); margin:12px 0; }
+    .kpi2 { font-size:22px; font-weight:900; margin-top:6px; }
+
+    .right { display:flex; gap:10px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
+
+    .badge {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:6px 10px; border-radius:999px;
+      border:1px solid rgba(148,163,184,.18);
+      background: rgba(2,6,23,.45);
+      font-weight:800; font-size:12px;
+    }
+    .green { color:#86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.10); }
+    .red { color:#fecaca; border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.10); }
+
+    /* Botões compactos pra header (sem mexer no style.css) */
+    .btn-compact{
+      padding: 10px 14px !important;
+      border-radius: 999px !important;
+      font-weight: 900 !important;
+      display:inline-flex;
+      gap:10px;
+      align-items:center;
+    }
+    .btn-ico{
+      width:28px;height:28px;border-radius:12px;
+      display:grid;place-items:center;
+      border:1px solid rgba(148,163,184,0.18);
+      background: rgba(2,6,23,0.25);
+    }
+    .btn-ico svg{ width:16px;height:16px; opacity:.95; }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px;">
+      <div>
+        <h1>FECHAR SEMANA • {{ year }}/{{ "%02d"|format(month) }} • Semana {{ week_no }}</h1>
+        <p class="muted">Preencha os valores. O sistema já calcula Driver (30%), Dispatcher (12%), Fixos rateados e MPG.</p>
+      </div>
+      <div style="flex:1"></div>
+
+      <div class="right">
+        <a class="btn btn-outline btn-compact" href="{{ url_for('dashboard', year=year, month=month) }}">
+          <span class="btn-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M15 18l-6-6 6-6"/>
+            </svg>
+          </span>
+          Voltar
+        </a>
+
+        {% if week_no > 1 %}
+          <!-- ✅ CORRIGIDO: endpoint certo do teu app.py é weekly_duplicate_from_prev -->
+          <a class="btn btn-outline btn-compact"
+             href="{{ url_for('weekly_duplicate_from_prev', year=year, month=month, week_no=week_no) }}"
+             title="Copiar dados da semana anterior (Semana {{ week_no - 1 }})">
+            <span class="btn-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 7h10v14H8z"/>
+                <path d="M6 3h10v4"/>
+              </svg>
+            </span>
+            Copiar Semana {{ week_no - 1 }}
+          </a>
+        {% else %}
+          <a class="btn btn-outline btn-compact" style="opacity:.45; pointer-events:none;" href="#">
+            <span class="btn-ico" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 7h10v14H8z"/>
+                <path d="M6 3h10v4"/>
+              </svg>
+            </span>
+            Copiar Semana
+          </a>
+        {% endif %}
+
+        <a class="btn btn-outline btn-compact"
+           href="{{ url_for('weekly_pdf', year=year, month=month, week_no=week_no) }}"
+           target="_blank"
+           title="Gerar PDF desta semana">
+          <span class="btn-ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <path d="M14 2v6h6"/>
+              <path d="M8 13h8"/>
+              <path d="M8 17h6"/>
+            </svg>
+          </span>
+          PDF
+        </a>
+
+        <span class="badge">Rateio: <b>{{ weeks_in_month }}</b> semanas</span>
+        <span class="badge">Fixos mês: <b>${{ "%.2f"|format(fixed_month_total or 0) }}</b></span>
+      </div>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-area">
+          {% for cat, msg in messages %}
+            <div class="flash {{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="grid">
+
+      <!-- FORM -->
+      <div class="panel card w8" style="grid-column: span 8;">
+        <h3 style="margin:0 0 10px;">Lançamento da Semana</h3>
+        <p class="muted small" style="margin-top:4px;">
+          Dica: use datas no formato <b>YYYY-MM-DD</b> (ex: 2026-03-01)
+        </p>
+
+        <div class="hr"></div>
+
+        <form method="POST">
+          <div class="row">
+            <div class="col-6">
+              <label>Período início</label>
+              <input class="input" name="period_start" value="{{ row.period_start if row else '' }}" placeholder="2026-03-01">
+            </div>
+            <div class="col-6">
+              <label>Período fim</label>
+              <input class="input" name="period_end" value="{{ row.period_end if row else '' }}" placeholder="2026-03-07">
+            </div>
+
+            <div class="col-4">
+              <label>Receita (Revenue)</label>
+              <input class="input" name="revenue" value="{{ row.revenue if row else '' }}" placeholder="12000">
+              <div class="help">Base do cálculo: Driver 30% e Dispatcher 12%</div>
+            </div>
+            <div class="col-4">
+              <label>Fuel</label>
+              <input class="input" name="fuel" value="{{ row.fuel if row else '' }}" placeholder="2400">
+            </div>
+            <div class="col-4">
+              <label>Despesas extras</label>
+              <input class="input" name="extra_expenses" value="{{ row.extra_expenses if row else '' }}" placeholder="300">
+            </div>
+
+            <div class="col-4">
+              <label>Cargo insurance (weekly)</label>
+              <input class="input" name="cargo_insurance_weekly" value="{{ row.cargo_insurance_weekly if row else 250.0 }}" placeholder="250">
+            </div>
+            <div class="col-4">
+              <label>Miles</label>
+              <input class="input" name="miles" value="{{ row.miles if row else '' }}" placeholder="2400">
+            </div>
+            <div class="col-4">
+              <label>Gallons</label>
+              <input class="input" name="gallons" value="{{ row.gallons if row else '' }}" placeholder="320">
+              <div class="help">MPG = miles / gallons</div>
+            </div>
+
+            <div class="col-6">
+              <label>Status pagamento</label>
+              {% set ps = (row.payment_status if row else 'pendente') %}
+              <select class="input" name="payment_status">
+                <option value="pendente" {{ 'selected' if ps == 'pendente' else '' }}>Pendente</option>
+                <option value="pago" {{ 'selected' if ps == 'pago' else '' }}>Pago</option>
+              </select>
+            </div>
+
+            <div class="col-12">
+              <label>Notas</label>
+              <textarea class="input" name="notes" rows="4" placeholder="Observações da semana...">{{ row.notes if row and row.notes else '' }}</textarea>
+            </div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="right">
+            <button class="btn" type="submit">Salvar fechamento</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- PREVIEW -->
+      <div class="panel card w4" style="grid-column: span 4;">
+        <h3 style="margin:0 0 10px;">Prévia do Cálculo</h3>
+        <p class="muted small" style="margin-top:4px;">Atualiza ao salvar. (Prévia usa os valores carregados na página)</p>
+
+        <div class="hr"></div>
+
+        {% set net = (preview.net or 0) %}
+        <div class="badge {{ 'green' if net >= 0 else 'red' }}" style="width:100%; justify-content:space-between;">
+          <span>Net</span>
+          <b>${{ "%.2f"|format(net) }}</b>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="muted small">Revenue</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.revenue or 0) }}</div>
+
+        <div class="hr"></div>
+
+        <div class="muted small">Driver (30%)</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.driver or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">Dispatcher (12%)</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.dispatcher or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">Fuel</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.fuel or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">Extras</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.extra or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">Cargo insurance</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.cargo or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">Fixos rateados (por semana)</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.fixed_week or 0) }}</div>
+
+        <div class="hr"></div>
+
+        <div class="muted small">Total despesas</div>
+        <div class="kpi2">${{ "%.2f"|format(preview.total_expenses or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">MPG</div>
+        <div class="kpi2">
+          {% if preview.mpg is not none %}
+            {{ "%.2f"|format(preview.mpg) }}
+          {% else %}
+            --
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>

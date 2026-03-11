@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Upload Financeiro</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="page">
+    <div class="page-head">
+      <h1>Upload Financeiro (Admin)</h1>
+      <p class="muted">Envie o Excel para teste do dashboard. Receipt é opcional.</p>
+    </div>
+
+    <div class="panel" style="max-width:760px;">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-area">
+            {% for cat, msg in messages %}
+              <div class="flash {{ cat }}">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      <form method="POST" enctype="multipart/form-data">
+        <label class="lbl">Excel financeiro (.xlsx) — obrigatório</label>
+        <input class="input" type="file" name="finance_xlsx" accept=".xlsx" required>
+
+        <label class="lbl" style="margin-top:14px;">Receipt combustível (.pdf) — opcional</label>
+        <input class="input" type="file" name="receipt_pdf" accept=".pdf">
+
+        <div style="display:flex; gap:10px; margin-top:16px;">
+          <button class="btn" type="submit">Enviar</button>
+          <a class="btn btn-outline" href="{{ url_for('dashboard') }}">Voltar</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

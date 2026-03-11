@@ -1,0 +1,751 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>IRONWAY ADMINISTRATIVO</title>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+.grid { display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); }
+.card { grid-column: span 3; }
+.card.w6 { grid-column: span 6; }
+.card.w12 { grid-column: span 12; }
+
+@media (max-width: 1100px){
+  .card { grid-column: span 6; }
+  .card.w6 { grid-column: span 12; }
+}
+@media (max-width: 640px){
+  .card { grid-column: span 12; }
+}
+
+.kpi { font-size:26px; font-weight:900; letter-spacing: -0.02em; }
+.muted{opacity:.75}
+.small{font-size:12px}
+.kpi-sub{margin-top:6px;font-size:12px;opacity:.75}
+.kpi-green{color:#16a34a}
+.kpi-red{color:#ef4444}
+
+.table{width:100%;border-collapse:collapse}
+.table th,.table td{
+  padding:10px;
+  border-bottom:1px solid rgba(148,163,184,0.12);
+  text-align:left;
+}
+
+.pill{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-radius:999px;
+  font-weight:900;
+  white-space:nowrap;
+}
+.pill.ok{
+  background:rgba(34,197,94,0.15);
+  color:#16a34a;
+  border:1px solid rgba(34,197,94,0.25);
+}
+.pill.gray{
+  background:rgba(100,116,139,0.14);
+  color:#cbd5e1;
+  border:1px solid rgba(100,116,139,0.25);
+}
+
+.panel.card{
+  position:relative;
+  overflow:hidden;
+  transform: translateZ(0);
+}
+
+.panel.card:hover{
+  transform: translateY(-2px);
+  box-shadow: 0 22px 70px rgba(0,0,0,0.55);
+}
+
+.card-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.card-title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+.ico{
+  width:34px;
+  height:34px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(148,163,184,0.18);
+  background: rgba(15,23,42,0.55);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.ico svg{
+  width:18px;
+  height:18px;
+  opacity:.95;
+}
+.chart-wrap{ height:280px; }
+
+.premium-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding: 6px 2px;
+}
+.brand-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.brand-dot{
+  width:14px;
+  height:14px;
+  border-radius:999px;
+  background: radial-gradient(circle at 30% 30%, rgba(34,197,94,1), rgba(56,189,248,.85));
+  box-shadow: 0 0 0 4px rgba(34,197,94,0.08), 0 14px 30px rgba(0,0,0,0.35);
+  border: 1px solid rgba(148,163,184,0.22);
+}
+.head-sub{
+  margin:6px 0 0 24px;
+  font-size:12px;
+  opacity:.70;
+}
+.head-actions{
+  display:flex;
+  gap:10px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+.pbtn{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(148,163,184,0.18);
+  background: rgba(15,23,42,0.50);
+  color:#e2e8f0;
+  font-weight:900;
+  text-decoration:none;
+  cursor:pointer;
+  transition: transform .08s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.pbtn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(34,197,94,0.28);
+  background: rgba(15,23,42,0.62);
+  box-shadow: 0 18px 55px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.pbtn:active{ transform: translateY(0px); }
+.pbtn-primary{
+  background: linear-gradient(135deg, rgba(34,197,94,0.95), rgba(34,197,94,0.72));
+  border-color: rgba(34,197,94,0.35);
+  color:#07120a;
+}
+.pbtn-primary:hover{
+  background: linear-gradient(135deg, rgba(34,197,94,1), rgba(34,197,94,0.78));
+  border-color: rgba(34,197,94,0.55);
+}
+.pbtn-ghost{ background: rgba(15,23,42,0.50); }
+.picon{
+  width:30px;
+  height:30px;
+  border-radius:12px;
+  display:grid;
+  place-items:center;
+  border:1px solid rgba(148,163,184,0.18);
+  background: rgba(2,6,23,0.25);
+}
+.picon svg{
+  width:16px;
+  height:16px;
+  opacity:.95;
+}
+
+/* MODAL */
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.55);
+  backdrop-filter: blur(6px);
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:9999;
+}
+.modal-backdrop.open{ display:flex; }
+.modal-box{
+  width:min(520px, 100%);
+  border-radius:18px;
+  border:1px solid rgba(148,163,184,0.18);
+  background: rgba(2,6,23,0.92);
+  box-shadow: 0 30px 80px rgba(0,0,0,0.65);
+  overflow:hidden;
+}
+.modal-head{
+  padding:16px 18px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid rgba(148,163,184,0.12);
+}
+.modal-title{ font-size:16px; font-weight:900; }
+.modal-body{ padding:16px 18px; }
+.week-grid{
+  display:grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap:10px;
+  margin-top:12px;
+}
+.week-btn{
+  padding:12px 10px;
+  border-radius:14px;
+  border:1px solid rgba(148,163,184,0.18);
+  background: rgba(15,23,42,0.55);
+  color:#e2e8f0;
+  font-weight:900;
+  cursor:pointer;
+  transition: transform .08s ease, border-color .12s ease, background .12s ease;
+}
+.week-btn:hover{
+  transform: translateY(-1px);
+  border-color: rgba(34,197,94,0.35);
+  background: rgba(34,197,94,0.10);
+}
+.modal-foot{
+  padding:14px 18px;
+  display:flex;
+  gap:10px;
+  justify-content:flex-end;
+  border-top:1px solid rgba(148,163,184,0.12);
+}
+.icon-btn{
+  border:none;
+  background:transparent;
+  color:#cbd5e1;
+  cursor:pointer;
+  font-size:18px;
+  line-height:1;
+  padding:6px 8px;
+  border-radius:10px;
+}
+.icon-btn:hover{ background: rgba(148,163,184,0.12); }
+</style>
+</head>
+
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="page-head premium-head">
+    <div class="head-left">
+      <div class="brand-row">
+        <div class="brand-dot" aria-hidden="true"></div>
+        <h1>IRONWAY ADMINISTRATIVO</h1>
+      </div>
+      <p class="muted head-sub">Financial control and weekly closings (Controle financeiro e fechamentos por semana).</p>
+    </div>
+
+    <div class="head-actions">
+      <button class="pbtn pbtn-ghost" type="button" id="btnOpenWeekModal">
+        <span class="picon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14"/><path d="M5 12h14"/>
+          </svg>
+        </span>
+        Close Week (Fechar Semana)
+      </button>
+
+      <a class="pbtn pbtn-ghost" href="{{ url_for('admin_history') }}">
+        <span class="picon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/>
+            <path d="M7 15v2"/><path d="M11 11v6"/><path d="M15 7v10"/><path d="M19 5v12"/>
+          </svg>
+        </span>
+        History (Histórico)
+      </a>
+
+      <a class="pbtn pbtn-ghost" href="{{ url_for('monthly_pdf', year=year, month=month) }}" target="_blank">
+        <span class="picon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/>
+          </svg>
+        </span>
+        Month PDF (PDF do Mês)
+      </a>
+
+      <a class="pbtn pbtn-ghost" href="{{ url_for('admin_fixos', year=year, month=month) }}">
+        <span class="picon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7h18"/><path d="M8 2v3"/><path d="M16 2v3"/>
+            <path d="M5 5h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
+          </svg>
+        </span>
+        Fixed Costs (Fixos do Mês)
+      </a>
+
+      <a class="pbtn pbtn-ghost" href="{{ url_for('logout') }}">
+        <span class="picon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/>
+          </svg>
+        </span>
+        Logout (Sair)
+      </a>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="panel" style="margin-bottom:14px;">
+    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div>
+        <div class="muted small">Year (Ano)</div>
+        <input class="input" name="year" value="{{ year }}" style="width:110px;">
+      </div>
+      <div>
+        <div class="muted small">Month (Mês)</div>
+        <input class="input" name="month" value="{{ month }}" style="width:90px;">
+      </div>
+      <div>
+        <div class="muted small">Week X across months (Semana X entre meses)</div>
+        <input class="input" name="week_x" value="{{ week_x }}" style="width:160px;">
+      </div>
+
+    <button class="pbtn pbtn-ghost" type="submit">
+        <span class="picon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 21H3"/><path d="M7 17V9"/><path d="M12 17V5"/><path d="M17 17v-7"/>
+            </svg>
+        </span>
+        Apply (Aplicar)
+    </button>
+
+      <div style="flex:1"></div>
+
+      <div class="muted small">
+        Proration (Rateio): <b>{{ weeks_in_month }}</b> weeks (semanas) • Fixed (Fixos):
+        <b>${{ "%.2f"|format(fixed_month_total or 0) }}</b>
+      </div>
+    </form>
+  </div>
+
+  <div class="grid">
+
+    <!-- ROW 1 -->
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20"/>
+              <path d="M17 6.5c0-2-2.2-3.5-5-3.5s-5 1.5-5 3.5 2.2 3.5 5 3.5 5 1.5 5 3.5-2.2 3.5-5 3.5-5-1.5-5-3.5"/>
+            </svg>
+          </div>
+          <div class="muted small">Revenue (Receita)</div>
+        </div>
+      </div>
+      <div class="kpi">${{ "%.2f"|format(monthly.revenue or 0) }}</div>
+      <div class="kpi-sub">Gross (Bruta)</div>
+    </div>
+
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M7 3h10v18l-2-1-2 1-2-1-2 1-2-1-2 1V3z"/>
+              <path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h6"/>
+            </svg>
+          </div>
+          <div class="muted small">Expenses (Despesas)</div>
+        </div>
+      </div>
+      <div class="kpi">${{ "%.2f"|format(monthly.expenses or 0) }}</div>
+      <div class="kpi-sub">Total (incl. % + fixed)</div>
+    </div>
+
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/>
+            </svg>
+          </div>
+          <div class="muted small">Net Profit (Lucro)</div>
+        </div>
+      </div>
+      {% set mnet = (monthly.net or 0) %}
+      <div class="kpi {% if mnet >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
+        ${{ "%.2f"|format(mnet) }}
+      </div>
+      <div class="kpi-sub">Net (Líquido)</div>
+    </div>
+
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2l8 4v6c0 6-4 9-8 10-4-1-8-4-8-10V6l8-4z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
+          </div>
+          <div class="muted small">Status (Status)</div>
+        </div>
+
+        {% if mpg_month is not none %}
+          <span class="pill ok">MPG (Month) {{ "%.2f"|format(mpg_month) }}</span>
+        {% else %}
+          <span class="pill gray">MPG (Month) --</span>
+        {% endif %}
+      </div>
+
+      <div style="margin-top:8px;">
+        <div class="kpi">OK</div>
+        <div class="kpi-sub">Finance system (Sistema financeiro)</div>
+      </div>
+    </div>
+
+    <!-- ROW 2 -->
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 21V7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/>
+              <path d="M3 11h11"/>
+              <path d="M14 8h2l2 2v11a2 2 0 0 0 2-2v-7l-2-2"/>
+              <path d="M7 15h3"/>
+            </svg>
+          </div>
+          <div class="muted small">Fuel (Combustível)</div>
+        </div>
+      </div>
+      <div class="kpi">${{ "%.2f"|format(fuel_month or 0) }}</div>
+      <div class="kpi-sub">Weekly sum (Somatório)</div>
+    </div>
+
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 7h11v10H3z"/>
+              <path d="M14 10h4l3 3v4h-7z"/>
+              <path d="M7 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+              <path d="M17 17a2 2 0 1 0 0 4 2 2 0 0 0 0-4z"/>
+            </svg>
+          </div>
+          <div class="muted small">Driver Pay (Pagamento)</div>
+        </div>
+      </div>
+      <div class="kpi">${{ "%.2f"|format(driver_month or 0) }}</div>
+      <div class="kpi-sub">Weekly sum (Somatório)</div>
+    </div>
+
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 12a8 8 0 0 1 16 0"/>
+              <path d="M4 12v5a2 2 0 0 0 2 2h2v-7H6a2 2 0 0 0-2 2z"/>
+              <path d="M20 12v5a2 2 0 0 1-2 2h-2v-7h2a2 2 0 0 1 2 2z"/>
+              <path d="M12 20v2"/>
+            </svg>
+          </div>
+          <div class="muted small">Dispatcher Pay (Pagamento)</div>
+        </div>
+      </div>
+      <div class="kpi">${{ "%.2f"|format(dispatcher_month or 0) }}</div>
+      <div class="kpi-sub">Weekly sum (Somatório)</div>
+    </div>
+
+    <div class="panel card">
+      <div class="card-head">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v3"/><path d="M16 2v3"/><path d="M3 7h18"/>
+              <path d="M5 5h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
+              <path d="M7 11h4"/>
+            </svg>
+          </div>
+          <div class="muted small">Fixed (Rateio)</div>
+        </div>
+      </div>
+      <div class="kpi">${{ "%.2f"|format(fixed_rateated_month or 0) }}</div>
+      <div class="kpi-sub">Fixed / weeks (Fixos / semanas)</div>
+    </div>
+
+    <!-- ROW 3 -->
+    <div class="panel card w6">
+      <div class="card-head" style="margin-bottom:8px;">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 19V5"/><path d="M8 19v-8"/><path d="M12 19v-4"/><path d="M16 19v-10"/><path d="M20 19V9"/>
+            </svg>
+          </div>
+          <h3 style="margin:0;">Week {{ week_x }} Across Months (Semana {{ week_x }} entre meses)</h3>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartAcross"></canvas></div>
+    </div>
+
+    <div class="panel card w6">
+      <div class="card-head" style="margin-bottom:8px;">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h4l2-6 4 12 2-6h6"/>
+            </svg>
+          </div>
+          <h3 style="margin:0;">Weeks of the Month (Semanas do mês) • Revenue x Expenses x Net (Receita x Despesas x Líquido)</h3>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="chartWeeks"></canvas></div>
+    </div>
+
+    <!-- MONTHLY NET -->
+    <div class="panel card w12">
+      <div class="card-head" style="margin-bottom:8px;">
+        <div class="card-title">
+          <div class="ico" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12h4l2-6 4 12 2-6h6"/>
+            </svg>
+          </div>
+          <h3 style="margin:0;">Monthly Net (Lucro mensal) • Last 12 Months (Últimos 12 meses)</h3>
+        </div>
+      </div>
+      <div class="chart-wrap" style="height:320px;">
+        <canvas id="chartMonthNet"></canvas>
+      </div>
+    </div>
+
+    <!-- TABLE -->
+    <div class="panel card w12">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+        <h3 style="margin:0;">Weekly Closings (Fechamentos)</h3>
+        <div class="muted small">Click “Close Week (Fechar Semana)” and choose week 1..5.</div>
+      </div>
+
+      {% if weeks and weeks|length %}
+        <table class="table" style="margin-top:12px;">
+          <thead>
+            <tr>
+              <th>Week (Semana)</th>
+              <th>Period (Período)</th>
+              <th>Revenue (Receita)</th>
+              <th>Total Expenses (Despesas)</th>
+              <th>Net (Líquido)</th>
+              <th>MPG (MPG)</th>
+              <th>Status (Status)</th>
+              <th></th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {% for w in weeks %}
+              <tr>
+                <td><b>{{ w.label }}</b></td>
+                <td class="muted">{{ w.period }}</td>
+                <td>${{ "%.2f"|format(w.calc.revenue or 0) }}</td>
+                <td>${{ "%.2f"|format(w.calc.total_expenses or 0) }}</td>
+                <td style="font-weight:900;color:{{ '#16a34a' if (w.calc.net or 0) >= 0 else '#ef4444' }};">
+                  ${{ "%.2f"|format(w.calc.net or 0) }}
+                </td>
+                <td>
+                  {% if w.calc.mpg is not none %}
+                    {{ "%.2f"|format(w.calc.mpg) }}
+                  {% else %}
+                    <span class="muted">--</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if w.payment_status == 'pago' %}
+                    <span class="pill ok">PAID (PAGO)</span>
+                  {% else %}
+                    <span class="pill gray">PENDING (PENDENTE)</span>
+                  {% endif %}
+                </td>
+                <td style="text-align:right; display:flex; gap:10px; justify-content:flex-end; align-items:center;">
+                  <a class="btn btn-outline" href="{{ url_for('weekly_pdf', year=year, month=month, week_no=w.week_no) }}">PDF (PDF)</a>
+                  <a class="btn btn-outline" href="{{ url_for('weekly_edit', year=year, month=month, week_no=w.week_no) }}">Edit (Editar)</a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="muted" style="margin-top:12px;">No weeks yet (Nenhuma semana cadastrada).</div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL CLOSE WEEK -->
+<div class="modal-backdrop" id="weekModal" aria-hidden="true">
+  <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="weekModalTitle">
+    <div class="modal-head">
+      <div>
+        <div class="modal-title" id="weekModalTitle">Close Week (Fechar Semana)</div>
+        <div class="muted small">Choose the week you want to enter (Escolha a semana 1..5).</div>
+      </div>
+      <button class="icon-btn" type="button" id="btnCloseWeekModal" aria-label="Close (Fechar)">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="muted small">Current Year/Month (Ano/Mês): <b>{{ year }}</b> / <b>{{ month }}</b></div>
+
+      <div class="week-grid">
+        <button class="week-btn" type="button" data-week="1">Week 1 (Semana 1)</button>
+        <button class="week-btn" type="button" data-week="2">Week 2 (Semana 2)</button>
+        <button class="week-btn" type="button" data-week="3">Week 3 (Semana 3)</button>
+        <button class="week-btn" type="button" data-week="4">Week 4 (Semana 4)</button>
+        <button class="week-btn" type="button" data-week="5">Week 5 (Semana 5)</button>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="btn btn-outline" type="button" id="btnCancelWeekModal">Cancel (Cancelar)</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ========== Charts ========== */
+const baseChartOptions = {
+  responsive:true,
+  maintainAspectRatio:false,
+  plugins:{
+    legend:{ labels:{ boxWidth:14, boxHeight:14 } },
+    tooltip:{ enabled:true }
+  },
+  scales:{
+    x:{ grid:{ display:false } },
+    y:{ grid:{ color:"rgba(148,163,184,0.10)" } }
+  }
+};
+
+const acrossLabels = {{ (chart_across_labels or []) | tojson }};
+const acrossRevenue = {{ (chart_across_revenue or []) | tojson }};
+const acrossExpenses = {{ (chart_across_expenses or []) | tojson }};
+const acrossNet = {{ (chart_across_net or []) | tojson }};
+
+new Chart(document.getElementById("chartAcross"), {
+  type:"bar",
+  data:{
+    labels:acrossLabels,
+    datasets:[
+      { label:"Revenue (Receita)", data:acrossRevenue, borderRadius:12, backgroundColor:"rgba(59,130,246,0.65)", borderColor:"rgba(59,130,246,1)" },
+      { label:"Expenses (Despesas)", data:acrossExpenses, borderRadius:12, backgroundColor:"rgba(244,63,94,0.65)", borderColor:"rgba(244,63,94,1)" },
+      { label:"Net (Líquido)", data:acrossNet, borderRadius:12, backgroundColor:"rgba(34,197,94,0.65)", borderColor:"rgba(34,197,94,1)" }
+    ]
+  },
+  options: baseChartOptions
+});
+
+const wLabels = {{ (chart_weeks_labels or []) | tojson }};
+const wRevenue = {{ (chart_weeks_revenue or []) | tojson }};
+const wExpenses = {{ (chart_weeks_expenses or []) | tojson }};
+const wNet = {{ (chart_weeks_net or []) | tojson }};
+
+new Chart(document.getElementById("chartWeeks"),{
+  type:"bar",
+  data:{
+    labels:wLabels,
+    datasets:[
+      { label:"Revenue (Receita)", data:wRevenue, borderRadius:12, backgroundColor:"rgba(59,130,246,0.65)", borderColor:"rgba(59,130,246,1)" },
+      { label:"Expenses (Despesas)", data:wExpenses, borderRadius:12, backgroundColor:"rgba(244,63,94,0.65)", borderColor:"rgba(244,63,94,1)" },
+      { label:"Net (Líquido)", data:wNet, borderRadius:12, backgroundColor:"rgba(34,197,94,0.65)", borderColor:"rgba(34,197,94,1)" }
+    ]
+  },
+  options: baseChartOptions
+});
+
+const monthLabels = {{ (chart_month_labels or []) | tojson }};
+const monthNet = {{ (chart_month_net or []) | tojson }};
+
+new Chart(document.getElementById("chartMonthNet"),{
+  type:"line",
+  data:{
+    labels: monthLabels,
+    datasets:[
+      {
+        label:"Monthly Net (Lucro mensal)",
+        data: monthNet,
+        tension: 0.25,
+        fill: true,
+        borderColor:"rgba(34,197,94,1)",
+        backgroundColor:"rgba(34,197,94,0.12)",
+        pointRadius: 3
+      }
+    ]
+  },
+  options: {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{ display:true } },
+    scales:{
+      x:{ grid:{ display:false } },
+      y:{ grid:{ color:"rgba(148,163,184,0.10)" } }
+    }
+  }
+});
+
+/* ========== Modal logic ========== */
+const weekModal = document.getElementById("weekModal");
+const openBtn = document.getElementById("btnOpenWeekModal");
+const closeBtn = document.getElementById("btnCloseWeekModal");
+const cancelBtn = document.getElementById("btnCancelWeekModal");
+
+function openModal(){
+  weekModal.classList.add("open");
+  weekModal.setAttribute("aria-hidden","false");
+}
+function closeModal(){
+  weekModal.classList.remove("open");
+  weekModal.setAttribute("aria-hidden","true");
+}
+
+openBtn.addEventListener("click", openModal);
+closeBtn.addEventListener("click", closeModal);
+cancelBtn.addEventListener("click", closeModal);
+
+weekModal.addEventListener("click", (e) => {
+  if (e.target === weekModal) closeModal();
+});
+
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape" && weekModal.classList.contains("open")) closeModal();
+});
+
+document.querySelectorAll(".week-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    const week = btn.getAttribute("data-week");
+    window.location.href = "/admin/fechamento/{{ year }}/{{ month }}/" + week;
+  });
+});
+</script>
+
+</body>
+</html>

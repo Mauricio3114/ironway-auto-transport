@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Fixos do Mês</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    /* fallback caso CSS não carregue por algum motivo */
+    body { background:#070b16; color:#e5e7eb; }
+    .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
+    .row > * { flex: 0 0 auto; }
+    .spacer { flex:1 1 auto; }
+    .danger { border-color: rgba(239,68,68,.35) !important; color:#fecaca !important; }
+    .danger:hover { opacity:.95; }
+    .two { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    @media (max-width: 900px){ .two { grid-template-columns: 1fr; } }
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px;">
+      <div>
+        <h1 style="margin:0;">FIXOS DO MÊS</h1>
+        <p class="muted" style="margin-top:6px;">
+          Defina 4 ou 5 semanas (rateio) e cadastre as despesas fixas do mês.
+        </p>
+      </div>
+
+      <div style="flex:1"></div>
+
+      <div style="display:flex; gap:10px;">
+        <a class="btn btn-outline" href="{{ url_for('dashboard', year=year, month=month) }}">← Voltar</a>
+        <a class="btn btn-outline" href="{{ url_for('logout') }}">Sair</a>
+      </div>
+    </div>
+
+    {# Flash messages #}
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="panel" style="margin-bottom:14px;">
+          <div class="flash-area">
+            {% for cat, msg in messages %}
+              <div class="flash {{ cat }}">{{ msg }}</div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div class="panel" style="margin-bottom:14px;">
+      <form method="get" class="row">
+        <div>
+          <div class="muted small">Ano</div>
+          <input class="input" name="year" value="{{ year }}" style="width:110px;">
+        </div>
+        <div>
+          <div class="muted small">Mês</div>
+          <input class="input" name="month" value="{{ month }}" style="width:90px;">
+        </div>
+        <button class="btn" type="submit">Abrir</button>
+
+        <div class="spacer"></div>
+
+        <div class="muted small" style="text-align:right;">
+          Total fixos do mês:
+          <b>${{ "%.2f"|format(fixed_total or 0) }}</b>
+        </div>
+      </form>
+    </div>
+
+    <div class="two">
+
+      <!-- CONFIG 4/5 SEMANAS -->
+      <div class="panel">
+        <h3 style="margin:0 0 8px;">Rateio do mês</h3>
+        <p class="muted small" style="margin:0 0 12px;">
+          Se o mês tiver 5 fechamentos, coloque 5 para dividir os fixos corretamente.
+        </p>
+
+        <form method="post" class="row" style="align-items:center;">
+          <input type="hidden" name="action" value="save_weeks">
+
+          <div>
+            <div class="muted small">Semanas no mês (4 ou 5)</div>
+            <select class="input" name="weeks_in_month" style="width:140px;">
+              <option value="4" {% if weeks_in_month == 4 %}selected{% endif %}>4</option>
+              <option value="5" {% if weeks_in_month == 5 %}selected{% endif %}>5</option>
+            </select>
+          </div>
+
+          <div style="min-width:180px;">
+            <div class="muted small">Fixos por semana (estimado)</div>
+            <div style="font-weight:900; font-size:18px; margin-top:6px;">
+              {% set denom = weeks_in_month if weeks_in_month in [4,5] else 4 %}
+              ${{ "%.2f"|format((fixed_total or 0) / denom) }}
+            </div>
+          </div>
+
+          <div class="spacer"></div>
+          <button class="btn" type="submit">Salvar</button>
+        </form>
+      </div>
+
+      <!-- ADD FIXO -->
+      <div class="panel">
+        <h3 style="margin:0 0 8px;">Adicionar custo fixo</h3>
+        <p class="muted small" style="margin:0 0 12px;">
+          Ex: Logbook, Yard, Seguro, ELD, Internet, etc.
+        </p>
+
+        <form method="post" class="row">
+          <input type="hidden" name="action" value="add_cost">
+
+          <div style="flex:1 1 260px; min-width:220px;">
+            <div class="muted small">Nome</div>
+            <input class="input" name="name" placeholder="Ex: Logbook" required style="width:100%;">
+          </div>
+
+          <div style="width:200px;">
+            <div class="muted small">Valor mensal (USD)</div>
+            <input class="input" name="amount_monthly" placeholder="Ex: 153" required style="width:100%;">
+          </div>
+
+          <button class="btn" type="submit">Adicionar</button>
+        </form>
+      </div>
+
+    </div>
+
+    <!-- LISTA FIXOS -->
+    <div class="panel" style="margin-top:14px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+        <h3 style="margin:0;">Fixos cadastrados</h3>
+        <div class="muted small">
+          Mês: <b>{{ "%04d-%02d"|format(year, month) }}</b>
+        </div>
+      </div>
+
+      {% if fixed_rows and fixed_rows|length %}
+        <table class="table" style="margin-top:12px;">
+          <thead>
+            <tr>
+              <th>Nome</th>
+              <th>Valor mensal</th>
+              <th style="text-align:right;">Ações</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in fixed_rows %}
+            <tr>
+              <td><b>{{ r.name }}</b></td>
+              <td>${{ "%.2f"|format(r.amount_monthly or 0) }}</td>
+              <td style="text-align:right;">
+                <form method="post" style="display:inline;">
+                  <input type="hidden" name="action" value="delete_cost">
+                  <input type="hidden" name="cost_id" value="{{ r.id }}">
+                  <button class="btn btn-outline danger" type="submit">Remover</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+
+        <div class="muted small" style="margin-top:10px; text-align:right;">
+          Total do mês: <b>${{ "%.2f"|format(fixed_total or 0) }}</b>
+        </div>
+      {% else %}
+        <div class="muted" style="margin-top:12px;">
+          Nenhum custo fixo cadastrado ainda. Use “Adicionar custo fixo”.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</body>
+</html>

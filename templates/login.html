@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>IRONWAY ADMINISTRATIVO</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    /* =========================
+       LOGIN ULTRA PREMIUM (SEM MEXER NO style.css)
+    ========================= */
+
+    :root{
+      --bd: rgba(148,163,184,0.20);
+      --bg: rgba(2,6,23,0.70);
+      --fg: #e5e7eb;
+      --muted: rgba(226,232,240,0.75);
+      --green: rgba(34,197,94,1);
+      --blue: rgba(59,130,246,1);
+      --red: rgba(239,68,68,1);
+    }
+
+    body.login-page{
+      position:relative;
+      overflow:hidden;
+      color: var(--fg);
+    }
+
+    /* fundo cinematográfico */
+    body.login-page::before{
+      content:"";
+      position:fixed;
+      inset:-40%;
+      background:
+        radial-gradient(circle at 18% 20%, rgba(34,197,94,0.22), rgba(0,0,0,0) 56%),
+        radial-gradient(circle at 82% 22%, rgba(56,189,248,0.20), rgba(0,0,0,0) 56%),
+        radial-gradient(circle at 70% 86%, rgba(168,85,247,0.18), rgba(0,0,0,0) 60%),
+        radial-gradient(circle at 32% 86%, rgba(59,130,246,0.14), rgba(0,0,0,0) 58%);
+      filter: blur(20px);
+      opacity:.95;
+      pointer-events:none;
+      z-index:0;
+      transform: translateZ(0);
+    }
+
+    /* “noise” leve */
+    body.login-page::after{
+      content:"";
+      position:fixed;
+      inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='240' height='240' filter='url(%23n)' opacity='.22'/%3E%3C/svg%3E");
+      opacity:.10;
+      mix-blend-mode: overlay;
+      pointer-events:none;
+      z-index:0;
+    }
+
+    /* animação do card */
+    @keyframes cardIn{
+      from{ opacity:0; transform: translateY(14px) scale(.985); filter: blur(6px); }
+      to{ opacity:1; transform: translateY(0) scale(1); filter: blur(0); }
+    }
+
+    .login-box{
+      position:relative;
+      z-index:1;
+      border-radius: 18px;
+      border: 1px solid var(--bd);
+      background: var(--bg);
+      box-shadow:
+        0 30px 90px rgba(0,0,0,0.65),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      overflow:hidden;
+
+      animation: cardIn .55s ease both;
+    }
+
+    /* borda glow */
+    .login-box::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      border-radius:inherit;
+      pointer-events:none;
+      background: linear-gradient(
+        120deg,
+        rgba(34,197,94,0.00),
+        rgba(34,197,94,0.12),
+        rgba(56,189,248,0.10),
+        rgba(168,85,247,0.10),
+        rgba(34,197,94,0.00)
+      );
+      opacity:.58;
+      filter: blur(10px);
+    }
+
+    /* shimmer sutil */
+    .login-box::after{
+      content:"";
+      position:absolute;
+      top:-60%;
+      left:-70%;
+      width:140%;
+      height:220%;
+      background: radial-gradient(circle at 30% 30%,
+        rgba(56,189,248,0.18),
+        rgba(168,85,247,0.12),
+        rgba(34,197,94,0.10),
+        rgba(0,0,0,0) 60%
+      );
+      opacity:.25;
+      transform: rotate(12deg);
+      pointer-events:none;
+    }
+
+    /* badge */
+    .brand-badge{
+      width:56px;
+      height:56px;
+      border-radius: 20px;
+      margin: 0 auto 10px;
+      display:grid;
+      place-items:center;
+      border:1px solid var(--bd);
+      background: rgba(15,23,42,0.55);
+      box-shadow:
+        0 20px 60px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+      position:relative;
+      overflow:hidden;
+    }
+    .brand-badge::before{
+      content:"";
+      position:absolute;
+      inset:-1px;
+      border-radius:inherit;
+      background: radial-gradient(circle at 30% 30%, rgba(34,197,94,0.95), rgba(56,189,248,0.88), rgba(168,85,247,0.75));
+      opacity:.14;
+      filter: blur(10px);
+    }
+    .brand-badge svg{
+      width:22px;
+      height:22px;
+      opacity:.95;
+      position:relative;
+      z-index:1;
+    }
+
+    .logo-title{
+      font-size:34px;
+      font-weight:900;
+      letter-spacing:-1px;
+      text-align:center;
+      margin-bottom:6px;
+      text-shadow: 0 10px 30px rgba(0,0,0,.55);
+    }
+
+    .logo-sub{
+      text-align:center;
+      opacity:.75;
+      margin-bottom:18px;
+    }
+
+    /* fields */
+    .field{
+      position:relative;
+      margin: 10px 0;
+    }
+
+    .field input{
+      width:100%;
+      padding: 12px 52px 12px 42px; /* ✅ + espaço pro olhinho */
+      border-radius: 12px;
+      border: 1px solid rgba(148,163,184,0.22);
+      background: rgba(2,6,23,0.35);
+      color: var(--fg);
+      outline:none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+      transition: border-color .15s ease, box-shadow .15s ease, transform .08s ease, background .15s ease;
+    }
+
+    .field input:focus{
+      border-color: rgba(34,197,94,0.45);
+      background: rgba(2,6,23,0.46);
+      box-shadow:
+        0 0 0 4px rgba(34,197,94,0.10),
+        inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .field .left-ico{
+      position:absolute;
+      left:12px;
+      top:50%;
+      transform: translateY(-50%);
+      width:18px;
+      height:18px;
+      opacity:.86;
+      pointer-events:none;
+    }
+
+    /* ✅ FIX: botão do olho alinhado (sem “borda torta”) */
+    .field .right-btn{
+      position:absolute;
+      right:10px;
+      top:50%;
+      transform: translateY(-50%); /* ✅ sem pular no hover */
+      width:34px;
+      height:34px;
+      border-radius: 12px;
+      display:grid;
+      place-items:center;
+
+      border:1px solid rgba(148,163,184,0.22);
+      background: rgba(2,6,23,0.35);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+
+      cursor:pointer;
+      color:#cbd5e1;
+      transition: background .12s ease, border-color .12s ease, box-shadow .12s ease;
+      padding:0;
+    }
+
+    .field .right-btn:hover{
+      background: rgba(2,6,23,0.48);
+      border-color: rgba(34,197,94,0.28);
+      box-shadow: 0 10px 26px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .field .right-btn:active{
+      background: rgba(2,6,23,0.52);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+    }
+
+    .field .right-btn svg{
+      width:18px;
+      height:18px;
+      opacity:.92;
+    }
+
+    /* helpers */
+    .row-help{
+      display:flex;
+      gap:10px;
+      align-items:center;
+      justify-content:space-between;
+      margin-top: 10px;
+      flex-wrap:wrap;
+    }
+
+    .check{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      user-select:none;
+      cursor:pointer;
+      font-size:12px;
+      opacity:.85;
+    }
+    .check input{
+      width:16px;height:16px;
+      accent-color: rgba(34,197,94,0.95);
+      cursor:pointer;
+    }
+
+    .caps{
+      display:none;
+      align-items:center;
+      gap:8px;
+      font-size:12px;
+      font-weight:900;
+      padding:8px 10px;
+      border-radius:12px;
+      border:1px solid rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.10);
+      color:#fecaca;
+      margin-top:10px;
+    }
+    .caps svg{ width:16px; height:16px; opacity:.95; }
+
+    /* botão premium + loading */
+    .login-box button[type="submit"]{
+      width:100%;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(59,130,246,0.35);
+      background: linear-gradient(180deg, rgba(56,189,248,0.95), rgba(59,130,246,0.85));
+      color: #07121a;
+      font-weight: 900;
+      letter-spacing: .2px;
+      cursor:pointer;
+      transition: transform .08s ease, box-shadow .18s ease, filter .18s ease, opacity .18s ease;
+      box-shadow:
+        0 18px 55px rgba(0,0,0,0.55),
+        inset 0 1px 0 rgba(255,255,255,0.20);
+      position:relative;
+      overflow:hidden;
+      margin-top: 12px;
+    }
+
+    .login-box button[type="submit"]::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background: linear-gradient(120deg, rgba(255,255,255,0.0), rgba(255,255,255,0.18), rgba(255,255,255,0.0));
+      transform: translateX(-120%);
+      transition: transform .55s ease;
+      opacity:.85;
+    }
+    .login-box button[type="submit"]:hover{
+      transform: translateY(-1px);
+      filter: brightness(1.03);
+    }
+    .login-box button[type="submit"]:hover::before{
+      transform: translateX(120%);
+    }
+    .login-box button[type="submit"]:active{
+      transform: translateY(0px);
+    }
+
+    .btn-loading{
+      pointer-events:none;
+      opacity:.92;
+    }
+    .btn-loading .btn-text{ opacity:.85; }
+    .btn-spinner{
+      display:none;
+      position:absolute;
+      right:14px;
+      top:50%;
+      transform: translateY(-50%);
+      width:18px; height:18px;
+      border-radius:999px;
+      border:2px solid rgba(7,18,26,0.35);
+      border-top-color: rgba(7,18,26,0.95);
+      animation: spin .75s linear infinite;
+    }
+    .btn-loading .btn-spinner{ display:block; }
+
+    @keyframes spin{ to{ transform: translateY(-50%) rotate(360deg); } }
+
+    .tiny{
+      font-size:12px;
+      opacity:.78;
+      text-align:center;
+      margin-top:10px;
+      color: var(--muted);
+    }
+
+    .version{
+      margin-top:14px;
+      text-align:center;
+      font-size:12px;
+      opacity:.72;
+      color: var(--muted);
+    }
+
+    /* flashes */
+    .flash-area{ margin-bottom: 10px; }
+    .flash{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(148,163,184,0.18);
+      background: rgba(2,6,23,0.45);
+      margin-bottom:8px;
+      font-weight:800;
+      font-size:13px;
+    }
+    .flash.error{
+      border-color: rgba(239,68,68,0.25);
+      background: rgba(239,68,68,0.10);
+      color:#fecaca;
+    }
+    .flash.success{
+      border-color: rgba(34,197,94,0.25);
+      background: rgba(34,197,94,0.10);
+      color:#86efac;
+    }
+
+    /* acessibilidade: foco visível */
+    :focus-visible{
+      outline: 2px solid rgba(34,197,94,0.55);
+      outline-offset: 3px;
+      border-radius: 12px;
+    }
+
+    @media (max-width: 420px){
+      .logo-title{ font-size:30px; }
+    }
+  </style>
+</head>
+
+<body class="login-page">
+
+  <div class="login-box" role="region" aria-label="Tela de login">
+
+    <div class="brand-badge" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2l8 4v6c0 6-4 9-8 10-4-1-8-4-8-10V6l8-4z"/>
+        <path d="M9 12l2 2 4-4"/>
+      </svg>
+    </div>
+
+    <div class="logo-title">IRONWAY</div>
+    <div class="logo-sub">Sistema Administrativo</div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-area" aria-live="polite">
+          {% for cat, msg in messages %}
+            <div class="flash {{ cat }}">{{ msg }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <form id="loginForm" method="POST" autocomplete="on" novalidate>
+
+      <div class="field">
+        <svg class="left-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M4 4h16v16H4z"/>
+          <path d="M22 6l-10 7L2 6"/>
+        </svg>
+        <input id="email" name="email" type="email" placeholder="Email" value="admin@sistema.com" required>
+      </div>
+
+      <div class="field">
+        <svg class="left-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M7 11V8a5 5 0 0 1 10 0v3"/>
+          <path d="M6 11h12v10H6z"/>
+        </svg>
+
+        <input id="senha" name="senha" type="password" placeholder="Senha" value="123456" required>
+
+        <button class="right-btn" type="button" id="toggleSenha" aria-label="Mostrar senha" title="Mostrar/ocultar senha">
+          <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/>
+            <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z"/>
+          </svg>
+          <svg id="eyeClosed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="display:none" aria-hidden="true">
+            <path d="M2 12s3.5-7 10-7 10 7 10 7-1.3 2.6-4 4.6"/>
+            <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+            <path d="M3 3l18 18"/>
+          </svg>
+        </button>
+      </div>
+
+      <div class="row-help">
+        <label class="check" for="rememberEmail">
+          <input id="rememberEmail" type="checkbox">
+          Lembrar meu email
+        </label>
+
+        <div class="muted" style="font-size:12px; opacity:.75;">
+          Acesso restrito • uso interno
+        </div>
+      </div>
+
+      <div class="caps" id="capsWarn" role="alert" aria-live="polite">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 9l-4 4h8l-4-4z"/>
+          <path d="M12 13v8"/>
+        </svg>
+        Caps Lock ligado
+      </div>
+
+      <button id="submitBtn" type="submit">
+        <span class="btn-text">Entrar no Sistema</span>
+        <span class="btn-spinner" aria-hidden="true"></span>
+      </button>
+
+      <div class="tiny">Dica: Enter envia • ESC não fecha (é login)</div>
+    </form>
+
+    <div class="version">
+      Admin padrão: <b>admin@sistema.com</b> / <b>123456</b>
+    </div>
+  </div>
+
+  <script>
+    // ===== Mostrar/ocultar senha
+    const toggleBtn = document.getElementById("toggleSenha");
+    const passInput = document.getElementById("senha");
+    const eyeOpen = document.getElementById("eyeOpen");
+    const eyeClosed = document.getElementById("eyeClosed");
+
+    toggleBtn.addEventListener("click", () => {
+      const isPass = passInput.type === "password";
+      passInput.type = isPass ? "text" : "password";
+      eyeOpen.style.display = isPass ? "none" : "block";
+      eyeClosed.style.display = isPass ? "block" : "none";
+      toggleBtn.setAttribute("aria-label", isPass ? "Ocultar senha" : "Mostrar senha");
+    });
+
+    // ===== Caps Lock warning
+    const capsWarn = document.getElementById("capsWarn");
+    function checkCaps(e){
+      if (!e || typeof e.getModifierState !== "function") return;
+      const on = e.getModifierState("CapsLock");
+      capsWarn.style.display = on ? "flex" : "none";
+    }
+    passInput.addEventListener("keyup", checkCaps);
+    passInput.addEventListener("keydown", checkCaps);
+
+    // ===== Remember email (localStorage)
+    const emailInput = document.getElementById("email");
+    const remember = document.getElementById("rememberEmail");
+    const KEY = "ironway_login_email";
+
+    try{
+      const saved = localStorage.getItem(KEY);
+      if (saved){
+        emailInput.value = saved;
+        remember.checked = true;
+      }
+    }catch(e){}
+
+    remember.addEventListener("change", () => {
+      try{
+        if (remember.checked){
+          localStorage.setItem(KEY, (emailInput.value || "").trim());
+        } else {
+          localStorage.removeItem(KEY);
+        }
+      }catch(e){}
+    });
+
+    emailInput.addEventListener("input", () => {
+      try{
+        if (remember.checked){
+          localStorage.setItem(KEY, (emailInput.value || "").trim());
+        }
+      }catch(e){}
+    });
+
+    // ===== Loading on submit (evita clique duplo)
+    const form = document.getElementById("loginForm");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", () => {
+      submitBtn.classList.add("btn-loading");
+      submitBtn.setAttribute("disabled", "disabled");
+    });
+
+    // ===== Foco automático no email
+    setTimeout(() => {
+      if (!emailInput.value) emailInput.focus();
+      else passInput.focus();
+    }, 60);
+  </script>
+
+</body>
+</html>
