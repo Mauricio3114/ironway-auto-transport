@@ -178,7 +178,6 @@ def get_fixed_costs_sum(year, month):
     return total, rows
 
 
-# ✅ ESTA FUNÇÃO ESTAVA FALTANDO (ERRO DO TEU PRINT)
 def compute_week_calc(w: WeeklyClose, weeks_in_month: int, fixed_month_total: float):
     revenue = float(w.revenue or 0)
     fuel = float(w.fuel or 0)
@@ -392,7 +391,7 @@ def _table(c: canvas.Canvas, x, y_top, col_widths, headers, rows, row_h=16):
     y = y_top - header_h - 8
     c.setFont("Helvetica", 9)
 
-    gap = 4  # <- menor pra caber mais linhas sem estourar
+    gap = 4
     for r_i, r in enumerate(rows):
         fill = colors.HexColor("#0e1730") if (r_i % 2 == 0) else colors.HexColor("#0c142a")
         c.setFillColor(fill)
@@ -662,12 +661,10 @@ def monthly_pdf(year, month):
     meta_left = f"Year/Month: {year}/{month:02d} • Rateio: {cfg.weeks_in_month} weeks"
     meta_right = f"Fixed (month): {_fmt_money(fixed_month_total)}"
 
-    # ==== tabela (ajustada pra caber dentro do panel)
     headers = ["Week", "Period", "Revenue", "Expenses", "Net", "MPG", "Status"]
-    col_widths = [38, 160, 78, 78, 72, 46, 40]  # total = 512 (cabe certinho)
+    col_widths = [38, 160, 78, 78, 72, 46, 40]
     row_h = 16
 
-    # monta rows
     rows = []
     for wc in week_cards:
         mpg = wc["calc"]["mpg"]
@@ -690,7 +687,6 @@ def monthly_pdf(year, month):
         x = 36
         w_panel = letter[0] - 72
 
-        # ===== Summary panel
         _panel(c, x, y - 170, w_panel, 160, title="Monthly Summary")
 
         net = float(totals.get("net") or 0.0)
@@ -715,21 +711,17 @@ def monthly_pdf(year, month):
         c.setFillColor(PDF_TEXT)
         c.drawString(x + 14, y - 170 + 2, _fmt_num(mpg_month, 2) if mpg_month is not None else "--")
 
-        # ===== Weeks panel “base”
         y2 = (y - 170) - 18
         _panel(c, x, y2 - 350, w_panel, 344, title=("Weeks Detail" if page == 1 else "Weeks Detail (cont.)"))
 
-        # posição inicial da tabela
         table_x = x + 14
         table_top = y2 - 48
 
         return table_x, table_top
 
-    # ===== primeira página
     table_x, table_top = draw_page_header()
 
-    # ===== paginação real (pra nunca passar do rodapé)
-    bottom_limit = 70  # guarda espaço pro footer
+    bottom_limit = 70
     header_h = 22
     gap = 4
     per_row = row_h + gap
@@ -990,21 +982,25 @@ def admin_fixos():
 
 
 # =========================
-# INIT
+# INIT DATABASE / ADMIN
+# =========================
+with app.app_context():
+    db.create_all()
+
+    if not User.query.filter_by(email="admin@sistema.com").first():
+        admin = User(
+            nome="Administrador",
+            email="admin@sistema.com",
+            senha=generate_password_hash("123456"),
+            tipo="admin",
+        )
+        db.session.add(admin)
+        db.session.commit()
+
+
+# =========================
+# RUN LOCAL
 # =========================
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-
-        if not User.query.filter_by(email="admin@sistema.com").first():
-            admin = User(
-                nome="Administrador",
-                email="admin@sistema.com",
-                senha=generate_password_hash("123456"),
-                tipo="admin",
-            )
-            db.session.add(admin)
-            db.session.commit()
-
     print(">>> INICIANDO FLASK AGORA...")
     app.run(debug=True, host="127.0.0.1", port=5000, use_reloader=False)
