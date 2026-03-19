@@ -11,13 +11,13 @@ from flask_login import (
     current_user
 )
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import inspect, text
 
 # PDF
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 
 from reportlab.lib import colors
-from reportlab.lib.units import inch
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
 
@@ -50,7 +50,7 @@ class User(db.Model, UserMixin):
     nome = db.Column(db.String(120), nullable=False)
     email = db.Column(db.String(160), unique=True, nullable=False)
     senha = db.Column(db.String(255), nullable=False)
-    tipo = db.Column(db.String(40), nullable=False, default="admin")  # admin
+    tipo = db.Column(db.String(40), nullable=False, default="admin")
 
     def __repr__(self):
         return f"<User {self.email}>"
@@ -58,12 +58,22 @@ class User(db.Model, UserMixin):
 
 class MonthlyConfig(db.Model):
     """
-    Config do mês: define se o mês tem 4 ou 5 semanas pro rateio.
+    Config do mês:
+    - semanas do mês
+    - % motorista
+    - % dispatcher
+    - meta do preço por galão
     """
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, nullable=False, index=True)
     month = db.Column(db.Integer, nullable=False, index=True)
-    weeks_in_month = db.Column(db.Integer, nullable=False, default=4)  # 4 ou 5
+
+    weeks_in_month = db.Column(db.Integer, nullable=False, default=4)
+
+    driver_percent = db.Column(db.Float, nullable=False, default=30.0)
+    dispatcher_percent = db.Column(db.Float, nullable=False, default=10.0)
+    fuel_target_price = db.Column(db.Float, nullable=False, default=3.30)
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     __table_args__ = (
@@ -87,31 +97,28 @@ class MonthlyFixedCost(db.Model):
 
 class WeeklyClose(db.Model):
     """
-    Fechamento da semana (manual).
-    Receita total => % motoristas/dispatcher calculados em cima dela.
+    Fechamento da semana.
     """
     id = db.Column(db.Integer, primary_key=True)
     year = db.Column(db.Integer, nullable=False, index=True)
     month = db.Column(db.Integer, nullable=False, index=True)
 
-    week_no = db.Column(db.Integer, nullable=False, index=True)  # 1..5
+    week_no = db.Column(db.Integer, nullable=False, index=True)
 
-    period_start = db.Column(db.String(20), nullable=True)  # "2026-02-01" (opcional)
+    period_start = db.Column(db.String(20), nullable=True)
     period_end = db.Column(db.String(20), nullable=True)
 
     revenue = db.Column(db.Float, nullable=False, default=0.0)
 
     fuel = db.Column(db.Float, nullable=False, default=0.0)
     extra_expenses = db.Column(db.Float, nullable=False, default=0.0)
-
     cargo_insurance_weekly = db.Column(db.Float, nullable=False, default=250.0)
 
     miles = db.Column(db.Float, nullable=False, default=0.0)
     gallons = db.Column(db.Float, nullable=False, default=0.0)
 
     notes = db.Column(db.Text, nullable=True)
-
-    payment_status = db.Column(db.String(20), nullable=False, default="pendente")  # pendente/pago
+    payment_status = db.Column(db.String(20), nullable=False, default="pendente")
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -163,12 +170,70 @@ def month_label(y, m):
     return f"{y}-{m:02d}"
 
 
+def _money(v):
+    try:
+        return f"${float(v or 0):,.2f}"
+    except Exception:
+        return "$0.00"
+
+
+def _safe_text(s):
+    return (s or "").strip()
+
+
+def _pct(value):
+    try:
+        return f"{float(value or 0):.2f}%"
+    except Exception:
+        return "0.00%"
+
+
+def ensure_schema_updates():
+    """
+    Faz upgrade leve do SQLite sem migration tool.
+    Adiciona colunas novas se ainda não existirem.
+    """
+    inspector = inspect(db.engine)
+
+    if "monthly_config" in inspector.get_table_names():
+        cols = {c["name"] for c in inspector.get_columns("monthly_config")}
+
+        stmts = []
+        if "driver_percent" not in cols:
+            stmts.append("ALTER TABLE monthly_config ADD COLUMN driver_percent FLOAT DEFAULT 30.0")
+        if "dispatcher_percent" not in cols:
+            stmts.append("ALTER TABLE monthly_config ADD COLUMN dispatcher_percent FLOAT DEFAULT 10.0")
+        if "fuel_target_price" not in cols:
+            stmts.append("ALTER TABLE monthly_config ADD COLUMN fuel_target_price FLOAT DEFAULT 3.30")
+
+        for stmt in stmts:
+            db.session.execute(text(stmt))
+        if stmts:
+            db.session.commit()
+
+
 def get_or_create_month_config(year, month):
     cfg = MonthlyConfig.query.filter_by(year=year, month=month).first()
     if not cfg:
-        cfg = MonthlyConfig(year=year, month=month, weeks_in_month=4)
+        cfg = MonthlyConfig(
+            year=year,
+            month=month,
+            weeks_in_month=4,
+            driver_percent=30.0,
+            dispatcher_percent=10.0,
+            fuel_target_price=3.30,
+        )
         db.session.add(cfg)
         db.session.commit()
+
+    if cfg.driver_percent is None:
+        cfg.driver_percent = 30.0
+    if cfg.dispatcher_percent is None:
+        cfg.dispatcher_percent = 10.0
+    if cfg.fuel_target_price is None:
+        cfg.fuel_target_price = 3.30
+    db.session.commit()
+
     return cfg
 
 
@@ -178,14 +243,20 @@ def get_fixed_costs_sum(year, month):
     return total, rows
 
 
-def compute_week_calc(w: WeeklyClose, weeks_in_month: int, fixed_month_total: float):
+def compute_week_calc(w: WeeklyClose, weeks_in_month: int, fixed_month_total: float, cfg: MonthlyConfig | None = None):
     revenue = float(w.revenue or 0)
     fuel = float(w.fuel or 0)
     extra = float(w.extra_expenses or 0)
     cargo = float(w.cargo_insurance_weekly or 0)
+    miles = float(w.miles or 0)
+    gallons = float(w.gallons or 0)
 
-    driver = revenue * 0.30
-    dispatcher = revenue * 0.12
+    driver_percent = float(getattr(cfg, "driver_percent", 30.0) or 30.0)
+    dispatcher_percent = float(getattr(cfg, "dispatcher_percent", 10.0) or 10.0)
+    fuel_target_price = float(getattr(cfg, "fuel_target_price", 3.30) or 3.30)
+
+    driver = revenue * (driver_percent / 100.0)
+    dispatcher = revenue * (dispatcher_percent / 100.0)
 
     weeks_in_month = 4 if weeks_in_month not in (4, 5) else weeks_in_month
     fixed_week = fixed_month_total / weeks_in_month if weeks_in_month > 0 else 0.0
@@ -193,9 +264,13 @@ def compute_week_calc(w: WeeklyClose, weeks_in_month: int, fixed_month_total: fl
     total_expenses = fuel + extra + cargo + driver + dispatcher + fixed_week
     net = revenue - total_expenses
 
-    mpg = None
-    if (w.gallons or 0) > 0:
-        mpg = (w.miles or 0) / (w.gallons or 0)
+    dollars_per_mile = (revenue / miles) if miles > 0 else None
+    avg_fuel_price = (fuel / gallons) if gallons > 0 else None
+    result_percent = ((net / revenue) * 100.0) if revenue > 0 else 0.0
+
+    fuel_vs_target_percent = None
+    if avg_fuel_price is not None and fuel_target_price > 0:
+        fuel_vs_target_percent = ((avg_fuel_price - fuel_target_price) / fuel_target_price) * 100.0
 
     return {
         "revenue": revenue,
@@ -204,10 +279,21 @@ def compute_week_calc(w: WeeklyClose, weeks_in_month: int, fixed_month_total: fl
         "cargo": cargo,
         "driver": driver,
         "dispatcher": dispatcher,
+        "driver_percent": driver_percent,
+        "dispatcher_percent": dispatcher_percent,
         "fixed_week": fixed_week,
         "total_expenses": total_expenses,
         "net": net,
-        "mpg": mpg,
+
+        # novos indicadores
+        "dollars_per_mile": dollars_per_mile,
+        "avg_fuel_price": avg_fuel_price,
+        "fuel_target_price": fuel_target_price,
+        "fuel_vs_target_percent": fuel_vs_target_percent,
+        "result_percent": result_percent,
+
+        # compatibilidade temporária com templates antigos
+        "mpg": dollars_per_mile,
     }
 
 
@@ -227,14 +313,22 @@ def compute_month_aggregate(year: int, month: int):
         "driver": 0.0,
         "dispatcher": 0.0,
         "fixed_week_total": 0.0,
+        "miles": 0.0,
+        "gallons": 0.0,
     }
 
-    mpg_sum = 0.0
-    mpg_n = 0
+    dpm_sum = 0.0
+    dpm_n = 0
+
+    fuel_avg_sum = 0.0
+    fuel_avg_n = 0
+
+    result_pct_sum = 0.0
+    result_pct_n = 0
 
     week_cards = []
     for w in weeks_rows:
-        calc = compute_week_calc(w, cfg.weeks_in_month, fixed_month_total)
+        calc = compute_week_calc(w, cfg.weeks_in_month, fixed_month_total, cfg)
 
         totals["revenue"] += calc["revenue"]
         totals["expenses"] += calc["total_expenses"]
@@ -245,10 +339,19 @@ def compute_month_aggregate(year: int, month: int):
         totals["driver"] += calc["driver"]
         totals["dispatcher"] += calc["dispatcher"]
         totals["fixed_week_total"] += calc["fixed_week"]
+        totals["miles"] += float(w.miles or 0)
+        totals["gallons"] += float(w.gallons or 0)
 
-        if calc["mpg"] is not None:
-            mpg_sum += float(calc["mpg"])
-            mpg_n += 1
+        if calc["dollars_per_mile"] is not None:
+            dpm_sum += float(calc["dollars_per_mile"])
+            dpm_n += 1
+
+        if calc["avg_fuel_price"] is not None:
+            fuel_avg_sum += float(calc["avg_fuel_price"])
+            fuel_avg_n += 1
+
+        result_pct_sum += float(calc["result_percent"] or 0)
+        result_pct_n += 1
 
         week_cards.append({
             "week_no": int(w.week_no),
@@ -258,25 +361,25 @@ def compute_month_aggregate(year: int, month: int):
             "calc": calc,
         })
 
-    mpg_month = (mpg_sum / mpg_n) if mpg_n > 0 else None
-    return cfg, fixed_month_total, weeks_rows, week_cards, totals, mpg_month
+    dollars_per_mile_month = (dpm_sum / dpm_n) if dpm_n > 0 else None
+    avg_fuel_price_month = (fuel_avg_sum / fuel_avg_n) if fuel_avg_n > 0 else None
+    result_percent_month = (result_pct_sum / result_pct_n) if result_pct_n > 0 else 0.0
 
-
-def _money(v):
-    try:
-        return f"${float(v or 0):,.2f}"
-    except Exception:
-        return "$0.00"
-
-
-def _safe_text(s):
-    return (s or "").strip()
+    return (
+        cfg,
+        fixed_month_total,
+        weeks_rows,
+        week_cards,
+        totals,
+        dollars_per_mile_month,
+        avg_fuel_price_month,
+        result_percent_month,
+    )
 
 
 # =========================
 # PDF PREMIUM ENGINE
 # =========================
-
 PDF_BRAND = "IRONWAY AUTO TRANSPORT"
 PDF_SUBTITLE_WEEK = "Weekly Close Report"
 PDF_SUBTITLE_MONTH = "Monthly Financial Report"
@@ -289,6 +392,7 @@ PDF_TEXT = colors.HexColor("#e5e7eb")
 PDF_MUTED = colors.HexColor("#9aa6bd")
 PDF_GREEN = colors.HexColor("#22c55e")
 PDF_RED = colors.HexColor("#ef4444")
+PDF_YELLOW = colors.HexColor("#facc15")
 
 
 def _fmt_money(v):
@@ -367,6 +471,8 @@ def _kv(c: canvas.Canvas, x, y, label, value, good_bad=None):
         c.setFillColor(PDF_GREEN)
     elif good_bad == "bad":
         c.setFillColor(PDF_RED)
+    elif good_bad == "warn":
+        c.setFillColor(PDF_YELLOW)
     else:
         c.setFillColor(PDF_TEXT)
 
@@ -459,7 +565,6 @@ def weekly_edit(year, month, week_no):
         revenue = _to_float(request.form.get("revenue"), 0.0)
         fuel = _to_float(request.form.get("fuel"), 0.0)
         extra = _to_float(request.form.get("extra_expenses"), 0.0)
-
         cargo = _to_float(request.form.get("cargo_insurance_weekly"), 250.0)
         miles = _to_float(request.form.get("miles"), 0.0)
         gallons = _to_float(request.form.get("gallons"), 0.0)
@@ -490,15 +595,21 @@ def weekly_edit(year, month, week_no):
 
     if not row:
         row = WeeklyClose(year=year, month=month, week_no=week_no, cargo_insurance_weekly=250.0)
-    preview = compute_week_calc(row, cfg.weeks_in_month, fixed_total)
+
+    preview = compute_week_calc(row, cfg.weeks_in_month, fixed_total, cfg)
 
     return render_template(
         "weekly_close_form.html",
-        year=year, month=month, week_no=week_no,
+        year=year,
+        month=month,
+        week_no=week_no,
         weeks_in_month=cfg.weeks_in_month,
         fixed_month_total=fixed_total,
         row=row,
-        preview=preview
+        preview=preview,
+        driver_percent=cfg.driver_percent,
+        dispatcher_percent=cfg.dispatcher_percent,
+        fuel_target_price=cfg.fuel_target_price,
     )
 
 
@@ -537,7 +648,7 @@ def weekly_duplicate_from_prev(year, month, week_no):
 
 
 # =========================
-# PDF PREMIUM ROUTES
+# PDF ROUTES
 # =========================
 @app.route("/admin/fechamento/<int:year>/<int:month>/<int:week_no>/pdf")
 @login_required
@@ -551,7 +662,7 @@ def weekly_pdf(year, month, week_no):
         flash("Semana não encontrada para exportar PDF.", "error")
         return redirect(url_for("dashboard", year=year, month=month))
 
-    calc = compute_week_calc(wrow, cfg.weeks_in_month, fixed_total)
+    calc = compute_week_calc(wrow, cfg.weeks_in_month, fixed_total, cfg)
 
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
@@ -563,7 +674,7 @@ def weekly_pdf(year, month, week_no):
 
     x = 36
     w_panel = letter[0] - 72
-    _panel(c, x, y - 170, w_panel, 160, title="Summary")
+    _panel(c, x, y - 200, w_panel, 190, title="Summary")
 
     left = x + 14
     top = y - 50
@@ -575,26 +686,27 @@ def weekly_pdf(year, month, week_no):
     _kv(c, left, top - 22, "Fuel", _fmt_money(calc.get("fuel")), None)
     _kv(c, left, top - 44, "Extra Expenses", _fmt_money(calc.get("extra")), None)
     _kv(c, left, top - 66, "Cargo Insurance", _fmt_money(calc.get("cargo")), None)
+    _kv(c, left, top - 88, "Average Fuel Price", _fmt_money(calc.get("avg_fuel_price")), "warn")
+    _kv(c, left, top - 110, "Fuel Target", _fmt_money(calc.get("fuel_target_price")), None)
 
     right = x + w_panel - 14 - 240
-    _kv(c, right, top, "Driver (30%)", _fmt_money(calc.get("driver")), None)
-    _kv(c, right, top - 22, "Dispatcher (12%)", _fmt_money(calc.get("dispatcher")), None)
+    _kv(c, right, top, f"Driver ({_pct(calc.get('driver_percent'))})", _fmt_money(calc.get("driver")), None)
+    _kv(c, right, top - 22, f"Dispatcher ({_pct(calc.get('dispatcher_percent'))})", _fmt_money(calc.get("dispatcher")), None)
     _kv(c, right, top - 44, "Fixed (rated weekly)", _fmt_money(calc.get("fixed_week")), None)
     _kv(c, right, top - 66, "Total Expenses", _fmt_money(calc.get("total_expenses")), None)
+    _kv(c, right, top - 88, "$ / Mile", _fmt_num(calc.get("dollars_per_mile"), 2), "good")
+    _kv(c, right, top - 110, "Result %", _pct(calc.get("result_percent")), "good" if (calc.get("result_percent") or 0) >= 0 else "bad")
 
     c.setFont("Helvetica-Bold", 12)
     c.setFillColor(PDF_MUTED)
-    c.drawString(x + 14, y - 170 + 18, "Net (Profit)")
+    c.drawString(x + 14, y - 200 + 18, "Net (Profit)")
 
     c.setFont("Helvetica-Bold", 20)
     c.setFillColor(PDF_GREEN if net >= 0 else PDF_RED)
-    c.drawRightString(x + w_panel - 14, y - 170 + 14, _fmt_money(net))
+    c.drawRightString(x + w_panel - 14, y - 200 + 14, _fmt_money(net))
 
-    y2 = (y - 170) - 18
+    y2 = (y - 200) - 18
     _panel(c, x, y2 - 92, w_panel, 86, title="Details")
-
-    mpg = calc.get("mpg")
-    mpg_txt = f"{float(mpg):.2f}" if mpg is not None else "--"
 
     c.setFont("Helvetica", 10)
     c.setFillColor(PDF_MUTED)
@@ -605,10 +717,10 @@ def weekly_pdf(year, month, week_no):
 
     c.setFont("Helvetica", 10)
     c.setFillColor(PDF_MUTED)
-    c.drawRightString(x + w_panel - 14, y2 - 48, "MPG")
+    c.drawRightString(x + w_panel - 14, y2 - 48, "Miles / Gallons")
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(PDF_TEXT)
-    c.drawRightString(x + w_panel - 14, y2 - 66, mpg_txt)
+    c.drawRightString(x + w_panel - 14, y2 - 66, f"{_fmt_num(wrow.miles, 2)} / {_fmt_num(wrow.gallons, 2)}")
 
     notes = _safe_text(wrow.notes)
     y3 = (y2 - 92) - 18
@@ -652,7 +764,16 @@ def weekly_pdf(year, month, week_no):
 @login_required
 @admin_required
 def monthly_pdf(year, month):
-    cfg, fixed_month_total, weeks_rows, week_cards, totals, mpg_month = compute_month_aggregate(year, month)
+    (
+        cfg,
+        fixed_month_total,
+        weeks_rows,
+        week_cards,
+        totals,
+        dollars_per_mile_month,
+        avg_fuel_price_month,
+        result_percent_month,
+    ) = compute_month_aggregate(year, month)
 
     buffer = io.BytesIO()
     c = canvas.Canvas(buffer, pagesize=letter)
@@ -661,23 +782,20 @@ def monthly_pdf(year, month):
     meta_left = f"Year/Month: {year}/{month:02d} • Rateio: {cfg.weeks_in_month} weeks"
     meta_right = f"Fixed (month): {_fmt_money(fixed_month_total)}"
 
-    headers = ["Week", "Period", "Revenue", "Expenses", "Net", "MPG", "Status"]
-    col_widths = [38, 160, 78, 78, 72, 46, 40]
+    headers = ["Week", "Period", "Revenue", "Expenses", "Net", "$/Mile", "Fuel Avg"]
+    col_widths = [38, 150, 74, 74, 72, 50, 54]
     row_h = 16
 
     rows = []
     for wc in week_cards:
-        mpg = wc["calc"]["mpg"]
-        mpg_txt = f"{float(mpg):.2f}" if mpg is not None else "--"
-        status = (wc.get("payment_status") or "pendente").upper()
         rows.append([
             str(wc["week_no"]),
             (wc["period"] or "")[:30],
             _fmt_money(wc["calc"]["revenue"]),
             _fmt_money(wc["calc"]["total_expenses"]),
             _fmt_money(wc["calc"]["net"]),
-            mpg_txt,
-            status
+            _fmt_num(wc["calc"]["dollars_per_mile"], 2),
+            _fmt_money(wc["calc"]["avg_fuel_price"]),
         ])
 
     def draw_page_header():
@@ -687,7 +805,7 @@ def monthly_pdf(year, month):
         x = 36
         w_panel = letter[0] - 72
 
-        _panel(c, x, y - 170, w_panel, 160, title="Monthly Summary")
+        _panel(c, x, y - 190, w_panel, 180, title="Monthly Summary")
 
         net = float(totals.get("net") or 0.0)
         net_flag = "good" if net >= 0 else "bad"
@@ -698,20 +816,17 @@ def monthly_pdf(year, month):
         _kv(c, left, top, "Revenue", _fmt_money(totals.get("revenue")), None)
         _kv(c, left, top - 22, "Total Expenses", _fmt_money(totals.get("expenses")), None)
         _kv(c, left, top - 44, "Net (Profit)", _fmt_money(net), net_flag)
+        _kv(c, left, top - 66, "Average Fuel Price", _fmt_money(avg_fuel_price_month), "warn")
+        _kv(c, left, top - 88, "Fuel Target", _fmt_money(cfg.fuel_target_price), None)
 
         right = x + w_panel - 14 - 240
-        _kv(c, right, top, "Fuel", _fmt_money(totals.get("fuel")), None)
-        _kv(c, right, top - 22, "Driver (30%)", _fmt_money(totals.get("driver")), None)
-        _kv(c, right, top - 44, "Dispatcher (12%)", _fmt_money(totals.get("dispatcher")), None)
+        _kv(c, right, top, f"Driver ({_pct(cfg.driver_percent)})", _fmt_money(totals.get("driver")), None)
+        _kv(c, right, top - 22, f"Dispatcher ({_pct(cfg.dispatcher_percent)})", _fmt_money(totals.get("dispatcher")), None)
+        _kv(c, right, top - 44, "$ / Mile (month avg)", _fmt_num(dollars_per_mile_month, 2), "good")
+        _kv(c, right, top - 66, "Result % (month avg)", _pct(result_percent_month), "good" if result_percent_month >= 0 else "bad")
+        _kv(c, right, top - 88, "Fuel", _fmt_money(totals.get("fuel")), None)
 
-        c.setFont("Helvetica", 10)
-        c.setFillColor(PDF_MUTED)
-        c.drawString(x + 14, y - 170 + 18, "MPG (month avg)")
-        c.setFont("Helvetica-Bold", 12)
-        c.setFillColor(PDF_TEXT)
-        c.drawString(x + 14, y - 170 + 2, _fmt_num(mpg_month, 2) if mpg_month is not None else "--")
-
-        y2 = (y - 170) - 18
+        y2 = (y - 190) - 18
         _panel(c, x, y2 - 350, w_panel, 344, title=("Weeks Detail" if page == 1 else "Weeks Detail (cont.)"))
 
         table_x = x + 14
@@ -773,11 +888,17 @@ def dashboard():
     dispatcher_month = 0.0
     fixed_rateated_month = 0.0
 
-    mpg_sum = 0.0
-    mpg_n = 0
+    dpm_sum = 0.0
+    dpm_n = 0
+
+    avg_fuel_sum = 0.0
+    avg_fuel_n = 0
+
+    result_pct_sum = 0.0
+    result_pct_n = 0
 
     for w in weeks:
-        calc = compute_week_calc(w, cfg.weeks_in_month, fixed_month_total)
+        calc = compute_week_calc(w, cfg.weeks_in_month, fixed_month_total, cfg)
 
         month_revenue += calc["revenue"]
         month_expenses += calc["total_expenses"]
@@ -788,9 +909,16 @@ def dashboard():
         dispatcher_month += calc["dispatcher"]
         fixed_rateated_month += calc["fixed_week"]
 
-        if calc["mpg"] is not None:
-            mpg_sum += float(calc["mpg"])
-            mpg_n += 1
+        if calc["dollars_per_mile"] is not None:
+            dpm_sum += float(calc["dollars_per_mile"])
+            dpm_n += 1
+
+        if calc["avg_fuel_price"] is not None:
+            avg_fuel_sum += float(calc["avg_fuel_price"])
+            avg_fuel_n += 1
+
+        result_pct_sum += float(calc["result_percent"] or 0)
+        result_pct_n += 1
 
         week_cards.append({
             "id": w.id,
@@ -802,12 +930,18 @@ def dashboard():
         })
 
     monthly = {"revenue": month_revenue, "expenses": month_expenses, "net": month_net}
-    mpg_month = (mpg_sum / mpg_n) if mpg_n > 0 else None
+    dollars_per_mile_month = (dpm_sum / dpm_n) if dpm_n > 0 else None
+    avg_fuel_price_month = (avg_fuel_sum / avg_fuel_n) if avg_fuel_n > 0 else None
+    result_percent_month = (result_pct_sum / result_pct_n) if result_pct_n > 0 else 0.0
 
     weeks_labels = [w["label"] for w in week_cards] or ["Sem 1", "Sem 2", "Sem 3", "Sem 4"]
     weeks_revenue = [round(w["calc"]["revenue"], 2) for w in week_cards] or [0, 0, 0, 0]
     weeks_expenses = [round(w["calc"]["total_expenses"], 2) for w in week_cards] or [0, 0, 0, 0]
     weeks_net = [round(w["calc"]["net"], 2) for w in week_cards] or [0, 0, 0, 0]
+    weeks_dpm = [round(w["calc"]["dollars_per_mile"], 2) if w["calc"]["dollars_per_mile"] is not None else 0 for w in week_cards] or [0, 0, 0, 0]
+    weeks_avg_fuel = [round(w["calc"]["avg_fuel_price"], 2) if w["calc"]["avg_fuel_price"] is not None else 0 for w in week_cards] or [0, 0, 0, 0]
+    weeks_result_pct = [round(w["calc"]["result_percent"], 2) for w in week_cards] or [0, 0, 0, 0]
+    weeks_fuel_target = [round(cfg.fuel_target_price, 2) for _ in weeks_labels] or [round(cfg.fuel_target_price, 2)] * 4
 
     week_x = _to_int(request.args.get("week_x"), 1)
 
@@ -834,7 +968,7 @@ def dashboard():
             across_expenses.append(0)
             across_net.append(0)
         else:
-            c2 = compute_week_calc(w, cfg2.weeks_in_month, fixed_total2)
+            c2 = compute_week_calc(w, cfg2.weeks_in_month, fixed_total2, cfg2)
             across_revenue.append(round(c2["revenue"], 2))
             across_expenses.append(round(c2["total_expenses"], 2))
             across_net.append(round(c2["net"], 2))
@@ -852,9 +986,38 @@ def dashboard():
     chart_month_labels = []
     chart_month_net = []
     for (yy, mm) in months12:
-        _, _, _, _, totals2, _ = compute_month_aggregate(yy, mm)
+        _, _, _, _, totals2, _, _, _ = compute_month_aggregate(yy, mm)
         chart_month_labels.append(month_label(yy, mm))
         chart_month_net.append(round(totals2["net"], 2))
+
+    pie_labels = []
+    pie_values = []
+
+    if dispatcher_month > 0:
+        pie_labels.append(f"Dispatcher ({cfg.dispatcher_percent:.2f}%)")
+        pie_values.append(round(dispatcher_month, 2))
+
+    if driver_month > 0:
+        pie_labels.append(f"Driver ({cfg.driver_percent:.2f}%)")
+        pie_values.append(round(driver_month, 2))
+
+    if fuel_month > 0:
+        pie_labels.append("Fuel")
+        pie_values.append(round(fuel_month, 2))
+
+    cargo_month = sum((w["calc"]["cargo"] or 0) for w in week_cards)
+    if cargo_month > 0:
+        pie_labels.append("Cargo Insurance")
+        pie_values.append(round(cargo_month, 2))
+
+    extra_month = sum((w["calc"]["extra"] or 0) for w in week_cards)
+    if extra_month > 0:
+        pie_labels.append("Extra Expenses")
+        pie_values.append(round(extra_month, 2))
+
+    if fixed_rateated_month > 0:
+        pie_labels.append("Fixed Costs")
+        pie_values.append(round(fixed_rateated_month, 2))
 
     return render_template(
         "admin_dashboard.html",
@@ -874,12 +1037,25 @@ def dashboard():
         dispatcher_month=dispatcher_month,
         fixed_rateated_month=fixed_rateated_month,
 
-        mpg_month=mpg_month,
+        driver_percent=cfg.driver_percent,
+        dispatcher_percent=cfg.dispatcher_percent,
+        fuel_target_price=cfg.fuel_target_price,
+
+        dollars_per_mile_month=dollars_per_mile_month,
+        avg_fuel_price_month=avg_fuel_price_month,
+        result_percent_month=result_percent_month,
+
+        # compatibilidade temporária
+        mpg_month=dollars_per_mile_month,
 
         chart_weeks_labels=weeks_labels,
         chart_weeks_revenue=weeks_revenue,
         chart_weeks_expenses=weeks_expenses,
         chart_weeks_net=weeks_net,
+        chart_weeks_dpm=weeks_dpm,
+        chart_weeks_avg_fuel=weeks_avg_fuel,
+        chart_weeks_fuel_target=weeks_fuel_target,
+        chart_weeks_result_pct=weeks_result_pct,
 
         chart_across_labels=across_labels,
         chart_across_revenue=across_revenue,
@@ -888,6 +1064,9 @@ def dashboard():
 
         chart_month_labels=chart_month_labels,
         chart_month_net=chart_month_net,
+
+        chart_pie_labels=pie_labels,
+        chart_pie_values=pie_values,
 
         receipt={"ok": False},
     )
@@ -909,7 +1088,17 @@ def admin_history():
 
     rows = []
     for (yy, mm) in months:
-        cfg, fixed_month_total, weeks_rows, week_cards, totals, mpg_month = compute_month_aggregate(yy, mm)
+        (
+            cfg,
+            fixed_month_total,
+            weeks_rows,
+            week_cards,
+            totals,
+            dollars_per_mile_month,
+            avg_fuel_price_month,
+            result_percent_month,
+        ) = compute_month_aggregate(yy, mm)
+
         rows.append({
             "year": yy,
             "month": mm,
@@ -919,7 +1108,9 @@ def admin_history():
             "revenue": totals["revenue"],
             "expenses": totals["expenses"],
             "net": totals["net"],
-            "mpg_month": mpg_month,
+            "dollars_per_mile_month": dollars_per_mile_month,
+            "avg_fuel_price_month": avg_fuel_price_month,
+            "result_percent_month": result_percent_month,
             "weeks_count": len(weeks_rows),
         })
 
@@ -948,6 +1139,26 @@ def admin_fixos():
             flash("Config do mês salva (4/5 semanas).", "success")
             return redirect(url_for("admin_fixos", year=year, month=month))
 
+        if action == "save_finance":
+            driver_percent = _to_float(request.form.get("driver_percent"), 30.0)
+            dispatcher_percent = _to_float(request.form.get("dispatcher_percent"), 10.0)
+            fuel_target_price = _to_float(request.form.get("fuel_target_price"), 3.30)
+
+            if driver_percent < 0:
+                driver_percent = 0.0
+            if dispatcher_percent < 0:
+                dispatcher_percent = 0.0
+            if fuel_target_price < 0:
+                fuel_target_price = 0.0
+
+            cfg.driver_percent = driver_percent
+            cfg.dispatcher_percent = dispatcher_percent
+            cfg.fuel_target_price = fuel_target_price
+            db.session.commit()
+
+            flash("Configurações financeiras salvas.", "success")
+            return redirect(url_for("admin_fixos", year=year, month=month))
+
         if action == "add_cost":
             name = (request.form.get("name") or "").strip()
             amount = _to_float(request.form.get("amount_monthly"), 0.0)
@@ -974,10 +1185,14 @@ def admin_fixos():
 
     return render_template(
         "monthly_fixed_costs.html",
-        year=year, month=month,
+        year=year,
+        month=month,
         weeks_in_month=cfg.weeks_in_month,
         fixed_total=fixed_total,
-        fixed_rows=fixed_rows
+        fixed_rows=fixed_rows,
+        driver_percent=cfg.driver_percent,
+        dispatcher_percent=cfg.dispatcher_percent,
+        fuel_target_price=cfg.fuel_target_price,
     )
 
 
@@ -986,6 +1201,7 @@ def admin_fixos():
 # =========================
 with app.app_context():
     db.create_all()
+    ensure_schema_updates()
 
     if not User.query.filter_by(email="admin@sistema.com").first():
         admin = User(

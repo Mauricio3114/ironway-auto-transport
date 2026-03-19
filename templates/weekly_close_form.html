@@ -9,7 +9,9 @@
   <style>
     .grid { display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); }
     .card { grid-column: span 3; }
+    .card.w4 { grid-column: span 4; }
     .card.w6 { grid-column: span 6; }
+    .card.w8 { grid-column: span 8; }
     .card.w12 { grid-column: span 12; }
 
     .row { display:grid; gap:10px; grid-template-columns: repeat(12, 1fr); }
@@ -19,24 +21,63 @@
     .col-8 { grid-column: span 8; }
     .col-12 { grid-column: span 12; }
 
-    label { display:block; font-size:12px; opacity:.78; margin:0 0 6px; }
+    @media (max-width: 1100px){
+      .card, .card.w4, .card.w6, .card.w8 { grid-column: span 12; }
+      .col-3, .col-4, .col-6, .col-8 { grid-column: span 12; }
+    }
+
+    label { display:block; font-size:12px; opacity:.82; margin:0 0 6px; }
     .help { font-size:12px; opacity:.72; margin-top:6px; }
     .hr { height:1px; background: rgba(148,163,184,.12); margin:12px 0; }
     .kpi2 { font-size:22px; font-weight:900; margin-top:6px; }
+    .kpi3 { font-size:18px; font-weight:900; margin-top:4px; }
 
     .right { display:flex; gap:10px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
 
     .badge {
-      display:inline-flex; align-items:center; gap:8px;
-      padding:6px 10px; border-radius:999px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
       border:1px solid rgba(148,163,184,.18);
       background: rgba(2,6,23,.45);
-      font-weight:800; font-size:12px;
+      font-weight:800;
+      font-size:12px;
+      color:#e2e8f0;
     }
     .green { color:#86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.10); }
     .red { color:#fecaca; border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.10); }
+    .yellow { color:#fde68a; border-color: rgba(250,204,21,.25); background: rgba(250,204,21,.10); }
+    .orange { color:#fdba74; border-color: rgba(249,115,22,.25); background: rgba(249,115,22,.10); }
+    .blue { color:#7dd3fc; border-color: rgba(56,189,248,.25); background: rgba(56,189,248,.10); }
+    .gray { color:#cbd5e1; border-color: rgba(148,163,184,.20); background: rgba(100,116,139,.10); }
 
-    /* Botões compactos pra header (sem mexer no style.css) */
+    .summary-grid{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
+    }
+    .sum-box{
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:16px;
+      padding:12px;
+      background: rgba(2,6,23,.18);
+    }
+    .sum-title{
+      font-size:12px;
+      opacity:.72;
+      margin-bottom:6px;
+    }
+
+    .head-note{
+      display:flex;
+      gap:8px;
+      flex-wrap:wrap;
+      margin-top:8px;
+    }
+
+    /* Botões compactos */
     .btn-compact{
       padding: 10px 14px !important;
       border-radius: 999px !important;
@@ -46,23 +87,38 @@
       align-items:center;
     }
     .btn-ico{
-      width:28px;height:28px;border-radius:12px;
-      display:grid;place-items:center;
+      width:28px;
+      height:28px;
+      border-radius:12px;
+      display:grid;
+      place-items:center;
       border:1px solid rgba(148,163,184,0.18);
       background: rgba(2,6,23,0.25);
     }
-    .btn-ico svg{ width:16px;height:16px; opacity:.95; }
+    .btn-ico svg{ width:16px; height:16px; opacity:.95; }
   </style>
 </head>
 
 <body>
   <div class="page">
 
-    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px;">
+    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
       <div>
         <h1>FECHAR SEMANA • {{ year }}/{{ "%02d"|format(month) }} • Semana {{ week_no }}</h1>
-        <p class="muted">Preencha os valores. O sistema já calcula Driver (30%), Dispatcher (12%), Fixos rateados e MPG.</p>
+        <p class="muted">
+          Preencha os valores. O sistema já calcula Driver ({{ "%.2f"|format(driver_percent or 0) }}%),
+          Dispatcher ({{ "%.2f"|format(dispatcher_percent or 0) }}%), fixos rateados,
+          média do combustível, $/milha e resultado %.
+        </p>
+
+        <div class="head-note">
+          <span class="badge blue">Driver {{ "%.2f"|format(driver_percent or 0) }}%</span>
+          <span class="badge blue">Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%</span>
+          <span class="badge gray">Fuel Target ${{ "%.2f"|format(fuel_target_price or 0) }}</span>
+          <span class="badge gray">Rateio {{ weeks_in_month }} semanas</span>
+        </div>
       </div>
+
       <div style="flex:1"></div>
 
       <div class="right">
@@ -76,10 +132,9 @@
         </a>
 
         {% if week_no > 1 %}
-          <!-- ✅ CORRIGIDO: endpoint certo do teu app.py é weekly_duplicate_from_prev -->
           <a class="btn btn-outline btn-compact"
              href="{{ url_for('weekly_duplicate_from_prev', year=year, month=month, week_no=week_no) }}"
-             title="Copiar dados da semana anterior (Semana {{ week_no - 1 }})">
+             title="Copiar dados da semana anterior">
             <span class="btn-ico" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M8 7h10v14H8z"/>
@@ -115,8 +170,7 @@
           PDF
         </a>
 
-        <span class="badge">Rateio: <b>{{ weeks_in_month }}</b> semanas</span>
-        <span class="badge">Fixos mês: <b>${{ "%.2f"|format(fixed_month_total or 0) }}</b></span>
+        <span class="badge gray">Fixos mês: <b>${{ "%.2f"|format(fixed_month_total or 0) }}</b></span>
       </div>
     </div>
 
@@ -155,12 +209,17 @@
             <div class="col-4">
               <label>Receita (Revenue)</label>
               <input class="input" name="revenue" value="{{ row.revenue if row else '' }}" placeholder="12000">
-              <div class="help">Base do cálculo: Driver 30% e Dispatcher 12%</div>
+              <div class="help">
+                Driver {{ "%.2f"|format(driver_percent or 0) }}% • Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%
+              </div>
             </div>
+
             <div class="col-4">
-              <label>Fuel</label>
+              <label>Fuel (Total pago)</label>
               <input class="input" name="fuel" value="{{ row.fuel if row else '' }}" placeholder="2400">
+              <div class="help">Valor total pago na semana</div>
             </div>
+
             <div class="col-4">
               <label>Despesas extras</label>
               <input class="input" name="extra_expenses" value="{{ row.extra_expenses if row else '' }}" placeholder="300">
@@ -170,14 +229,17 @@
               <label>Cargo insurance (weekly)</label>
               <input class="input" name="cargo_insurance_weekly" value="{{ row.cargo_insurance_weekly if row else 250.0 }}" placeholder="250">
             </div>
+
             <div class="col-4">
               <label>Miles</label>
               <input class="input" name="miles" value="{{ row.miles if row else '' }}" placeholder="2400">
+              <div class="help">Usado para calcular $ / milha</div>
             </div>
+
             <div class="col-4">
               <label>Gallons</label>
               <input class="input" name="gallons" value="{{ row.gallons if row else '' }}" placeholder="320">
-              <div class="help">MPG = miles / gallons</div>
+              <div class="help">Usado para média do combustível</div>
             </div>
 
             <div class="col-6">
@@ -187,6 +249,12 @@
                 <option value="pendente" {{ 'selected' if ps == 'pendente' else '' }}>Pendente</option>
                 <option value="pago" {{ 'selected' if ps == 'pago' else '' }}>Pago</option>
               </select>
+            </div>
+
+            <div class="col-6">
+              <label>Fuel Target do mês</label>
+              <input class="input" value="${{ "%.2f"|format(fuel_target_price or 0) }}" disabled>
+              <div class="help">Configurado em Fixed Costs / Finance Config</div>
             </div>
 
             <div class="col-12">
@@ -206,50 +274,111 @@
       <!-- PREVIEW -->
       <div class="panel card w4" style="grid-column: span 4;">
         <h3 style="margin:0 0 10px;">Prévia do Cálculo</h3>
-        <p class="muted small" style="margin-top:4px;">Atualiza ao salvar. (Prévia usa os valores carregados na página)</p>
+        <p class="muted small" style="margin-top:4px;">
+          Atualiza ao salvar. A prévia usa os valores atualmente carregados.
+        </p>
 
         <div class="hr"></div>
 
         {% set net = (preview.net or 0) %}
-        <div class="badge {{ 'green' if net >= 0 else 'red' }}" style="width:100%; justify-content:space-between;">
-          <span>Net</span>
-          <b>${{ "%.2f"|format(net) }}</b>
+        {% set fuel_avg = preview.avg_fuel_price %}
+        {% set fuel_target = preview.fuel_target_price or 0 %}
+        {% set result_pct = preview.result_percent or 0 %}
+        {% set fuel_vs_target = preview.fuel_vs_target_percent %}
+
+        <div class="summary-grid">
+          <div class="sum-box">
+            <div class="sum-title">Net</div>
+            <div class="kpi2 {% if net >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
+              ${{ "%.2f"|format(net) }}
+            </div>
+          </div>
+
+          <div class="sum-box">
+            <div class="sum-title">Result %</div>
+            <div class="kpi2 {% if result_pct >= 20 %}kpi-green{% elif result_pct >= 10 %}kpi-yellow{% elif result_pct >= 0 %}kpi-orange{% else %}kpi-red{% endif %}">
+              {{ "%.2f"|format(result_pct) }}%
+            </div>
+          </div>
+
+          <div class="sum-box">
+            <div class="sum-title">$ / Mile</div>
+            <div class="kpi2 kpi-blue">
+              {% if preview.dollars_per_mile is not none %}
+                ${{ "%.2f"|format(preview.dollars_per_mile) }}
+              {% else %}
+                --
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="sum-box">
+            <div class="sum-title">Avg Fuel Price</div>
+            <div class="kpi2 {% if fuel_avg is not none and fuel_avg <= fuel_target %}kpi-green{% elif fuel_avg is not none and fuel_avg <= (fuel_target * 1.10) %}kpi-yellow{% elif fuel_avg is not none %}kpi-orange{% endif %}">
+              {% if fuel_avg is not none %}
+                ${{ "%.2f"|format(fuel_avg) }}
+              {% else %}
+                --
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
+        <div class="hr"></div>
+
+        <div class="right" style="justify-content:flex-start;">
+          {% if fuel_avg is none %}
+            <span class="badge gray">Sem dados de combustível</span>
+          {% elif fuel_avg <= fuel_target %}
+            <span class="badge green">Combustível dentro da meta</span>
+          {% elif fuel_avg <= (fuel_target * 1.10) %}
+            <span class="badge yellow">Combustível em atenção</span>
+          {% else %}
+            <span class="badge orange">Combustível acima da meta</span>
+          {% endif %}
+
+          {% if net >= 0 %}
+            <span class="badge green">Semana positiva</span>
+          {% else %}
+            <span class="badge red">Semana negativa</span>
+          {% endif %}
         </div>
 
         <div class="hr"></div>
 
         <div class="muted small">Revenue</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.revenue or 0) }}</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.revenue or 0) }}</div>
 
-        <div class="hr"></div>
+        <div class="muted small" style="margin-top:10px;">Driver ({{ "%.2f"|format(preview.driver_percent or 0) }}%)</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.driver or 0) }}</div>
 
-        <div class="muted small">Driver (30%)</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.driver or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Dispatcher (12%)</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.dispatcher or 0) }}</div>
+        <div class="muted small" style="margin-top:10px;">Dispatcher ({{ "%.2f"|format(preview.dispatcher_percent or 0) }}%)</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.dispatcher or 0) }}</div>
 
         <div class="muted small" style="margin-top:10px;">Fuel</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.fuel or 0) }}</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.fuel or 0) }}</div>
 
         <div class="muted small" style="margin-top:10px;">Extras</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.extra or 0) }}</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.extra or 0) }}</div>
 
         <div class="muted small" style="margin-top:10px;">Cargo insurance</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.cargo or 0) }}</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.cargo or 0) }}</div>
 
         <div class="muted small" style="margin-top:10px;">Fixos rateados (por semana)</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.fixed_week or 0) }}</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.fixed_week or 0) }}</div>
 
         <div class="hr"></div>
 
         <div class="muted small">Total despesas</div>
-        <div class="kpi2">${{ "%.2f"|format(preview.total_expenses or 0) }}</div>
+        <div class="kpi3">${{ "%.2f"|format(preview.total_expenses or 0) }}</div>
 
-        <div class="muted small" style="margin-top:10px;">MPG</div>
-        <div class="kpi2">
-          {% if preview.mpg is not none %}
-            {{ "%.2f"|format(preview.mpg) }}
+        <div class="muted small" style="margin-top:10px;">Fuel target</div>
+        <div class="kpi3 kpi-blue">${{ "%.2f"|format(preview.fuel_target_price or 0) }}</div>
+
+        <div class="muted small" style="margin-top:10px;">Fuel vs target</div>
+        <div class="kpi3 {% if fuel_vs_target is not none and fuel_vs_target <= 0 %}kpi-green{% elif fuel_vs_target is not none and fuel_vs_target <= 10 %}kpi-yellow{% elif fuel_vs_target is not none %}kpi-orange{% endif %}">
+          {% if fuel_vs_target is not none %}
+            {{ "%.2f"|format(fuel_vs_target) }}%
           {% else %}
             --
           {% endif %}

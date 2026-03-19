@@ -8,38 +8,116 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 
   <style>
-    /* fallback caso CSS não carregue por algum motivo */
     body { background:#070b16; color:#e5e7eb; }
+
     .row { display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end; }
     .row > * { flex: 0 0 auto; }
     .spacer { flex:1 1 auto; }
+
     .danger { border-color: rgba(239,68,68,.35) !important; color:#fecaca !important; }
     .danger:hover { opacity:.95; }
-    .two { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
-    @media (max-width: 900px){ .two { grid-template-columns: 1fr; } }
+
+    .grid-two { display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+    .grid-three { display:grid; grid-template-columns: repeat(3, 1fr); gap:14px; }
+
+    @media (max-width: 1000px){
+      .grid-two, .grid-three { grid-template-columns: 1fr; }
+    }
+
+    .metric-box{
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:16px;
+      padding:14px;
+      background: rgba(2,6,23,.18);
+    }
+    .metric-label{
+      font-size:12px;
+      opacity:.75;
+      margin-bottom:6px;
+    }
+    .metric-value{
+      font-size:22px;
+      font-weight:900;
+    }
+
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      padding:6px 10px;
+      border-radius:999px;
+      font-weight:900;
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .pill.info{
+      background:rgba(56,189,248,0.14);
+      color:#7dd3fc;
+      border:1px solid rgba(56,189,248,0.24);
+    }
+    .pill.ok{
+      background:rgba(34,197,94,0.14);
+      color:#86efac;
+      border:1px solid rgba(34,197,94,0.24);
+    }
+    .pill.warn{
+      background:rgba(250,204,21,0.14);
+      color:#fde68a;
+      border:1px solid rgba(250,204,21,0.24);
+    }
+    .pill.gray{
+      background:rgba(100,116,139,0.14);
+      color:#cbd5e1;
+      border:1px solid rgba(100,116,139,0.25);
+    }
+
+    .header-actions{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      align-items:center;
+    }
+
+    .panel h3{
+      margin:0 0 8px;
+    }
+
+    .table{
+      width:100%;
+      border-collapse:collapse;
+    }
+    .table th,.table td{
+      padding:10px;
+      border-bottom:1px solid rgba(148,163,184,0.12);
+      text-align:left;
+      vertical-align:middle;
+    }
+    .table th{
+      font-size:12px;
+      opacity:.78;
+    }
   </style>
 </head>
 
 <body>
   <div class="page">
 
-    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px;">
+    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
       <div>
-        <h1 style="margin:0;">FIXOS DO MÊS</h1>
+        <h1 style="margin:0;">FIXOS DO MÊS / FINANCE CONFIG</h1>
         <p class="muted" style="margin-top:6px;">
-          Defina 4 ou 5 semanas (rateio) e cadastre as despesas fixas do mês.
+          Defina semanas do mês, percentuais financeiros, meta do combustível e despesas fixas.
         </p>
       </div>
 
-      <div style="flex:1"></div>
+      <div class="spacer"></div>
 
-      <div style="display:flex; gap:10px;">
+      <div class="header-actions">
         <a class="btn btn-outline" href="{{ url_for('dashboard', year=year, month=month) }}">← Voltar</a>
         <a class="btn btn-outline" href="{{ url_for('logout') }}">Sair</a>
       </div>
     </div>
 
-    {# Flash messages #}
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         <div class="panel" style="margin-bottom:14px;">
@@ -52,32 +130,58 @@
       {% endif %}
     {% endwith %}
 
+    <!-- FILTRO MÊS -->
     <div class="panel" style="margin-bottom:14px;">
       <form method="get" class="row">
         <div>
           <div class="muted small">Ano</div>
           <input class="input" name="year" value="{{ year }}" style="width:110px;">
         </div>
+
         <div>
           <div class="muted small">Mês</div>
           <input class="input" name="month" value="{{ month }}" style="width:90px;">
         </div>
+
         <button class="btn" type="submit">Abrir</button>
 
         <div class="spacer"></div>
 
-        <div class="muted small" style="text-align:right;">
-          Total fixos do mês:
-          <b>${{ "%.2f"|format(fixed_total or 0) }}</b>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <span class="pill info">Driver {{ "%.2f"|format(driver_percent or 0) }}%</span>
+          <span class="pill info">Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%</span>
+          <span class="pill {% if fuel_target_price and fuel_target_price > 0 %}warn{% else %}gray{% endif %}">
+            Fuel Target ${{ "%.2f"|format(fuel_target_price or 0) }}
+          </span>
+          <span class="pill gray">Rateio {{ weeks_in_month }} semanas</span>
         </div>
       </form>
     </div>
 
-    <div class="two">
+    <!-- CARDS RESUMO -->
+    <div class="grid-three" style="margin-bottom:14px;">
+      <div class="metric-box">
+        <div class="metric-label">Total fixos do mês</div>
+        <div class="metric-value">${{ "%.2f"|format(fixed_total or 0) }}</div>
+      </div>
 
-      <!-- CONFIG 4/5 SEMANAS -->
+      <div class="metric-box">
+        <div class="metric-label">Fixos por semana</div>
+        {% set denom = weeks_in_month if weeks_in_month in [4,5] else 4 %}
+        <div class="metric-value">${{ "%.2f"|format((fixed_total or 0) / denom) }}</div>
+      </div>
+
+      <div class="metric-box">
+        <div class="metric-label">Competência</div>
+        <div class="metric-value">{{ "%04d-%02d"|format(year, month) }}</div>
+      </div>
+    </div>
+
+    <div class="grid-two">
+
+      <!-- RATEIO -->
       <div class="panel">
-        <h3 style="margin:0 0 8px;">Rateio do mês</h3>
+        <h3>Rateio do mês</h3>
         <p class="muted small" style="margin:0 0 12px;">
           Se o mês tiver 5 fechamentos, coloque 5 para dividir os fixos corretamente.
         </p>
@@ -94,47 +198,80 @@
           </div>
 
           <div style="min-width:180px;">
-            <div class="muted small">Fixos por semana (estimado)</div>
+            <div class="muted small">Fixos por semana</div>
             <div style="font-weight:900; font-size:18px; margin-top:6px;">
-              {% set denom = weeks_in_month if weeks_in_month in [4,5] else 4 %}
               ${{ "%.2f"|format((fixed_total or 0) / denom) }}
             </div>
           </div>
 
           <div class="spacer"></div>
-          <button class="btn" type="submit">Salvar</button>
+          <button class="btn" type="submit">Salvar rateio</button>
         </form>
       </div>
 
-      <!-- ADD FIXO -->
+      <!-- CONFIG FINANCEIRA -->
       <div class="panel">
-        <h3 style="margin:0 0 8px;">Adicionar custo fixo</h3>
+        <h3>Configuração financeira</h3>
         <p class="muted small" style="margin:0 0 12px;">
-          Ex: Logbook, Yard, Seguro, ELD, Internet, etc.
+          Esses valores serão usados nos cálculos do dashboard, semanas e PDFs.
         </p>
 
-        <form method="post" class="row">
-          <input type="hidden" name="action" value="add_cost">
+        <form method="post">
+          <input type="hidden" name="action" value="save_finance">
 
-          <div style="flex:1 1 260px; min-width:220px;">
-            <div class="muted small">Nome</div>
-            <input class="input" name="name" placeholder="Ex: Logbook" required style="width:100%;">
+          <div class="row">
+            <div style="flex:1 1 180px; min-width:180px;">
+              <div class="muted small">Driver %</div>
+              <input class="input" name="driver_percent" value="{{ "%.2f"|format(driver_percent or 0) }}" placeholder="30">
+            </div>
+
+            <div style="flex:1 1 180px; min-width:180px;">
+              <div class="muted small">Dispatcher %</div>
+              <input class="input" name="dispatcher_percent" value="{{ "%.2f"|format(dispatcher_percent or 0) }}" placeholder="10">
+            </div>
+
+            <div style="flex:1 1 180px; min-width:180px;">
+              <div class="muted small">Fuel target price ($/galão)</div>
+              <input class="input" name="fuel_target_price" value="{{ "%.2f"|format(fuel_target_price or 0) }}" placeholder="3.30">
+            </div>
           </div>
 
-          <div style="width:200px;">
-            <div class="muted small">Valor mensal (USD)</div>
-            <input class="input" name="amount_monthly" placeholder="Ex: 153" required style="width:100%;">
+          <div class="row" style="margin-top:12px;">
+            <div class="spacer"></div>
+            <button class="btn" type="submit">Salvar config financeira</button>
           </div>
-
-          <button class="btn" type="submit">Adicionar</button>
         </form>
       </div>
 
     </div>
 
+    <!-- ADICIONAR FIXO -->
+    <div class="panel" style="margin-top:14px;">
+      <h3>Adicionar custo fixo</h3>
+      <p class="muted small" style="margin:0 0 12px;">
+        Ex: Logbook, Yard, Seguro, ELD, Internet, Office, Parking, etc.
+      </p>
+
+      <form method="post" class="row">
+        <input type="hidden" name="action" value="add_cost">
+
+        <div style="flex:1 1 260px; min-width:220px;">
+          <div class="muted small">Nome</div>
+          <input class="input" name="name" placeholder="Ex: Logbook" required style="width:100%;">
+        </div>
+
+        <div style="width:220px;">
+          <div class="muted small">Valor mensal (USD)</div>
+          <input class="input" name="amount_monthly" placeholder="Ex: 153" required style="width:100%;">
+        </div>
+
+        <button class="btn" type="submit">Adicionar</button>
+      </form>
+    </div>
+
     <!-- LISTA FIXOS -->
     <div class="panel" style="margin-top:14px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
         <h3 style="margin:0;">Fixos cadastrados</h3>
         <div class="muted small">
           Mês: <b>{{ "%04d-%02d"|format(year, month) }}</b>
