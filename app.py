@@ -301,7 +301,8 @@ def compute_month_aggregate(year: int, month: int):
     cfg = get_or_create_month_config(year, month)
     fixed_month_total, _ = get_fixed_costs_sum(year, month)
 
-    weeks_rows = WeeklyClose.query.filter_by(year=year, month=month).order_by(WeeklyClose.week_no.asc()).all()
+    weeks_rows = WeeklyClose.query.filter_by(year=year, month=month)\
+        .order_by(WeeklyClose.week_no.asc()).all()
 
     totals = {
         "revenue": 0.0,
@@ -327,30 +328,35 @@ def compute_month_aggregate(year: int, month: int):
     result_pct_n = 0
 
     week_cards = []
+
     for w in weeks_rows:
         calc = compute_week_calc(w, cfg.weeks_in_month, fixed_month_total, cfg)
 
-        totals["revenue"] += calc["revenue"]
-        totals["expenses"] += calc["total_expenses"]
-        totals["net"] += calc["net"]
-        totals["fuel"] += calc["fuel"]
-        totals["extra"] += calc["extra"]
-        totals["cargo"] += calc["cargo"]
-        totals["driver"] += calc["driver"]
-        totals["dispatcher"] += calc["dispatcher"]
-        totals["fixed_week_total"] += calc["fixed_week"]
+        # 🔥 GARANTIR FUEL SEMPRE
+        fuel_value = float(calc.get("fuel") or 0)
+
+        totals["revenue"] += float(calc.get("revenue") or 0)
+        totals["expenses"] += float(calc.get("total_expenses") or 0)
+        totals["net"] += float(calc.get("net") or 0)
+        totals["fuel"] += fuel_value
+        totals["extra"] += float(calc.get("extra") or 0)
+        totals["cargo"] += float(calc.get("cargo") or 0)
+        totals["driver"] += float(calc.get("driver") or 0)
+        totals["dispatcher"] += float(calc.get("dispatcher") or 0)
+        totals["fixed_week_total"] += float(calc.get("fixed_week") or 0)
+
         totals["miles"] += float(w.miles or 0)
         totals["gallons"] += float(w.gallons or 0)
 
-        if calc["dollars_per_mile"] is not None:
+        if calc.get("dollars_per_mile") is not None:
             dpm_sum += float(calc["dollars_per_mile"])
             dpm_n += 1
 
-        if calc["avg_fuel_price"] is not None:
+        if calc.get("avg_fuel_price") is not None:
             fuel_avg_sum += float(calc["avg_fuel_price"])
             fuel_avg_n += 1
 
-        result_pct_sum += float(calc["result_percent"] or 0)
+        result_pct_sum += float(calc.get("result_percent") or 0)
         result_pct_n += 1
 
         week_cards.append({
@@ -358,7 +364,10 @@ def compute_month_aggregate(year: int, month: int):
             "label": f"Sem {w.week_no}",
             "period": f"{w.period_start or '--'} → {w.period_end or '--'}",
             "payment_status": w.payment_status,
-            "calc": calc,
+            "calc": {
+                **calc,
+                "fuel": fuel_value  # 🔥 garante que sempre tem fuel
+            },
         })
 
     dollars_per_mile_month = (dpm_sum / dpm_n) if dpm_n > 0 else None
@@ -942,6 +951,7 @@ def dashboard():
     weeks_avg_fuel = [round(w["calc"]["avg_fuel_price"], 2) if w["calc"]["avg_fuel_price"] is not None else 0 for w in week_cards] or [0, 0, 0, 0]
     weeks_result_pct = [round(w["calc"]["result_percent"], 2) for w in week_cards] or [0, 0, 0, 0]
     weeks_fuel_target = [round(cfg.fuel_target_price, 2) for _ in weeks_labels] or [round(cfg.fuel_target_price, 2)] * 4
+    chart_weeks_fuel = [round(w["calc"]["fuel"], 2) for w in week_cards] or [0, 0, 0, 0]
 
     week_x = _to_int(request.args.get("week_x"), 1)
 
@@ -1056,6 +1066,7 @@ def dashboard():
         chart_weeks_avg_fuel=weeks_avg_fuel,
         chart_weeks_fuel_target=weeks_fuel_target,
         chart_weeks_result_pct=weeks_result_pct,
+        chart_weeks_fuel=chart_weeks_fuel,
 
         chart_across_labels=across_labels,
         chart_across_revenue=across_revenue,
