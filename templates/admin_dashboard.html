@@ -883,7 +883,7 @@ const wDpm = {{ (chart_weeks_dpm or []) | tojson }};
 const wAvgFuel = {{ (chart_weeks_avg_fuel or []) | tojson }};
 const wFuelTarget = {{ (chart_weeks_fuel_target or []) | tojson }};
 const wResultPct = {{ (chart_weeks_result_pct or []) | tojson }};
-const fuelMonthWeekly = {{ ([round(w.calc.fuel, 2) for w in weeks] if weeks else [0,0,0,0]) | tojson }};
+const fuelMonthWeekly = {{ (chart_weeks_fuel or [0,0,0,0]) | tojson }};
 
 new Chart(document.getElementById("chartWeeks"), {
   type: "bar",
