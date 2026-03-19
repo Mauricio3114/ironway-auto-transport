@@ -944,14 +944,38 @@ new Chart(document.getElementById("chartFuelCost"), {
     labels: wLabels,
     datasets: [
       {
-        label: "Fuel Cost",
+        label: "Custo de Combustível",
         data: fuelMonthWeekly,
         borderRadius: 12,
         backgroundColor: "rgba(249,115,22,0.72)"
       }
     ]
   },
-  options: baseChartOptions
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        labels: { color: chartTextColor }
+      }
+    },
+    scales: {
+      x: {
+        ticks: { color: chartTextColor },
+        grid: { display: false }
+      },
+      y: {
+        beginAtZero: true,
+        ticks: {
+          color: chartTextColor,
+          callback: function(value) {
+            return "$" + value;
+          }
+        },
+        grid: { color: chartGridColor }
+      }
+    }
+  }
 });
 
 new Chart(document.getElementById("chartResult"), {
