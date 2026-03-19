@@ -1228,6 +1228,9 @@ with app.app_context():
 # =========================
 # RUN LOCAL
 # =========================
+import os
+
 if __name__ == "__main__":
     print(">>> INICIANDO FLASK AGORA...")
-    app.run(debug=True, host="127.0.0.1", port=5000, use_reloader=False)
+    port = int(os.environ.get("PORT", 10000))
+    app.run(debug=True, host="0.0.0.0", port=port, use_reloader=False)
