@@ -21,3 +21,4 @@ typing_extensions==4.15.0
 tzdata==2025.2
 urllib3==2.6.3
 Werkzeug==3.0.1
+matplotlib==3.10.3
