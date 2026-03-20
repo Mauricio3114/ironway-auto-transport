@@ -20,6 +20,12 @@ from reportlab.pdfgen import canvas
 from reportlab.lib import colors
 from reportlab.pdfbase.pdfmetrics import stringWidth
 
+import io
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+from reportlab.lib.utils import ImageReader
 
 # =========================
 # APP CONFIG
@@ -445,6 +451,61 @@ def compute_month_aggregate(year: int, month: int):
     )
 
 
+def _build_chart_image(chart_type, labels, datasets, title="", height=2.8):
+    fig, ax = plt.subplots(figsize=(8.8, height), dpi=160)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    if chart_type == "bar":
+        n = max(1, len(datasets))
+        x = list(range(len(labels)))
+        width = 0.36 if n == 2 else 0.22
+
+        if n == 1:
+            ds = datasets[0]
+            ax.bar(x, ds["data"], width=0.55, label=ds["label"])
+        else:
+            offsets = []
+            if n == 2:
+                offsets = [-width / 2, width / 2]
+            elif n == 3:
+                offsets = [-width, 0, width]
+            else:
+                offsets = [0] * n
+
+            for i, ds in enumerate(datasets):
+                xpos = [v + offsets[i] for v in x]
+                ax.bar(xpos, ds["data"], width=width, label=ds["label"])
+
+        ax.set_xticks(list(range(len(labels))))
+        ax.set_xticklabels(labels, rotation=0)
+
+    elif chart_type == "line":
+        for ds in datasets:
+            ax.plot(labels, ds["data"], marker="o", linewidth=2.2, label=ds["label"])
+
+    ax.set_title(title, fontsize=11, fontweight="bold")
+    ax.grid(axis="y", linestyle="--", alpha=0.25)
+    ax.tick_params(axis="x", labelsize=8)
+    ax.tick_params(axis="y", labelsize=8)
+
+    if len(datasets) > 1:
+        ax.legend(fontsize=8, frameon=False, loc="best")
+
+    plt.tight_layout()
+
+    img_buffer = io.BytesIO()
+    fig.savefig(img_buffer, format="png", bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close(fig)
+    img_buffer.seek(0)
+    return img_buffer
+
+
+def _draw_chart_from_buffer(c, img_buffer, x, y, w, h):
+    img = ImageReader(img_buffer)
+    c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, mask="auto")
+
+
 # =========================
 # PDF PREMIUM ENGINE
 # =========================
@@ -744,7 +805,18 @@ def weekly_pdf(year, month, week_no):
     cfg = get_or_create_month_config(year, month)
     fixed_total, _ = get_fixed_costs_sum(year, month)
 
-    wrow = WeeklyClose.query.filter_by(year=year, month=month, week_no=week_no).first()
+    from sqlalchemy.orm import joinedload
+
+    wrow = (
+        WeeklyClose.query
+        .options(
+            joinedload(WeeklyClose.motorista),
+            joinedload(WeeklyClose.dispatcher),
+            joinedload(WeeklyClose.veiculo),
+        )
+        .filter_by(year=year, month=month, week_no=week_no)
+        .first()
+    )
     if not wrow:
         flash("Semana não encontrada para exportar PDF.", "error")
         return redirect(url_for("dashboard", year=year, month=month))
@@ -792,22 +864,60 @@ def weekly_pdf(year, month, week_no):
     c.setFillColor(PDF_GREEN if net >= 0 else PDF_RED)
     c.drawRightString(x + w_panel - 14, y - 200 + 14, _fmt_money(net))
 
+    motorista_nome = "--"
+    if getattr(wrow, "motorista", None):
+        motorista_nome = getattr(wrow.motorista, "nome", "--") or "--"
+
+    dispatcher_nome = "--"
+    if getattr(wrow, "dispatcher", None):
+        dispatcher_nome = getattr(wrow.dispatcher, "nome", "--") or "--"
+
+    veiculo_nome = "--"
+    if getattr(wrow, "veiculo", None):
+        vnome = getattr(wrow.veiculo, "nome", None)
+        vplaca = getattr(wrow.veiculo, "placa", None)
+        if vnome and vplaca:
+            veiculo_nome = f"{vnome} - {vplaca}"
+        else:
+            veiculo_nome = vnome or vplaca or "--"
+
     y2 = (y - 200) - 18
-    _panel(c, x, y2 - 92, w_panel, 86, title="Details")
+    _panel(c, x, y2 - 150, w_panel, 144, title="Details")
 
     c.setFont("Helvetica", 10)
     c.setFillColor(PDF_MUTED)
-    c.drawString(x + 14, y2 - 48, "Period")
+    c.drawString(x + 14, y2 - 42, "Period")
     c.setFillColor(PDF_TEXT)
     c.setFont("Helvetica-Bold", 11)
-    c.drawString(x + 14, y2 - 66, f"{wrow.period_start or '--'}  →  {wrow.period_end or '--'}")
+    c.drawString(x + 14, y2 - 58, f"{wrow.period_start or '--'}  →  {wrow.period_end or '--'}")
 
     c.setFont("Helvetica", 10)
     c.setFillColor(PDF_MUTED)
-    c.drawRightString(x + w_panel - 14, y2 - 48, "Miles / Gallons")
+    c.drawString(x + 14, y2 - 82, "Motorista")
+    c.setFillColor(PDF_TEXT)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(x + 14, y2 - 98, motorista_nome)
+
+    c.setFont("Helvetica", 10)
+    c.setFillColor(PDF_MUTED)
+    c.drawString(x + 220, y2 - 82, "Dispatcher")
+    c.setFillColor(PDF_TEXT)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(x + 220, y2 - 98, dispatcher_nome)
+
+    c.setFont("Helvetica", 10)
+    c.setFillColor(PDF_MUTED)
+    c.drawString(x + 14, y2 - 122, "Veículo / Frota")
+    c.setFillColor(PDF_TEXT)
+    c.setFont("Helvetica-Bold", 11)
+    c.drawString(x + 14, y2 - 138, veiculo_nome)
+
+    c.setFont("Helvetica", 10)
+    c.setFillColor(PDF_MUTED)
+    c.drawRightString(x + w_panel - 14, y2 - 42, "Miles / Gallons")
     c.setFont("Helvetica-Bold", 11)
     c.setFillColor(PDF_TEXT)
-    c.drawRightString(x + w_panel - 14, y2 - 66, f"{_fmt_num(wrow.miles, 2)} / {_fmt_num(wrow.gallons, 2)}")
+    c.drawRightString(x + w_panel - 14, y2 - 58, f"{_fmt_num(wrow.miles, 2)} / {_fmt_num(wrow.gallons, 2)}")
 
     notes = _safe_text(wrow.notes)
     y3 = (y2 - 92) - 18
@@ -845,6 +955,61 @@ def weekly_pdf(year, month, week_no):
     buffer.seek(0)
     filename = f"ironway_week_{year}_{month:02d}_W{week_no}.pdf"
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
+
+
+def _build_chart_image(chart_type, labels, datasets, title="", height=2.8):
+    fig, ax = plt.subplots(figsize=(8.8, height), dpi=160)
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+
+    if chart_type == "bar":
+        n = max(1, len(datasets))
+        x = list(range(len(labels)))
+        width = 0.36 if n == 2 else 0.22
+
+        if n == 1:
+            ds = datasets[0]
+            ax.bar(x, ds["data"], width=0.55, label=ds["label"])
+        else:
+            offsets = []
+            if n == 2:
+                offsets = [-width / 2, width / 2]
+            elif n == 3:
+                offsets = [-width, 0, width]
+            else:
+                offsets = [0] * n
+
+            for i, ds in enumerate(datasets):
+                xpos = [v + offsets[i] for v in x]
+                ax.bar(xpos, ds["data"], width=width, label=ds["label"])
+
+        ax.set_xticks(list(range(len(labels))))
+        ax.set_xticklabels(labels, rotation=0)
+
+    elif chart_type == "line":
+        for ds in datasets:
+            ax.plot(labels, ds["data"], marker="o", linewidth=2.2, label=ds["label"])
+
+    ax.set_title(title, fontsize=11, fontweight="bold")
+    ax.grid(axis="y", linestyle="--", alpha=0.25)
+    ax.tick_params(axis="x", labelsize=8)
+    ax.tick_params(axis="y", labelsize=8)
+
+    if len(datasets) > 1:
+        ax.legend(fontsize=8, frameon=False, loc="best")
+
+    plt.tight_layout()
+
+    img_buffer = io.BytesIO()
+    fig.savefig(img_buffer, format="png", bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close(fig)
+    img_buffer.seek(0)
+    return img_buffer
+
+
+def _draw_chart_from_buffer(c, img_buffer, x, y, w, h):
+    img = ImageReader(img_buffer)
+    c.drawImage(img, x, y, width=w, height=h, preserveAspectRatio=True, mask="auto")
 
 
 @app.route("/admin/mes/<int:year>/<int:month>/pdf")
@@ -942,6 +1107,114 @@ def monthly_pdf(year, month):
             page += 1
             table_x, table_top = draw_page_header()
 
+    weeks_labels = [f"Sem {w['week_no']}" for w in week_cards] or ["Sem 1", "Sem 2", "Sem 3", "Sem 4"]
+    weeks_revenue = [round(w["calc"]["revenue"] or 0, 2) for w in week_cards] or [0, 0, 0, 0]
+    weeks_expenses = [round(w["calc"]["total_expenses"] or 0, 2) for w in week_cards] or [0, 0, 0, 0]
+    weeks_net = [round(w["calc"]["net"] or 0, 2) for w in week_cards] or [0, 0, 0, 0]
+    weeks_avg_fuel = [round(w["calc"]["avg_fuel_price"], 2) if w["calc"]["avg_fuel_price"] is not None else 0 for w in week_cards] or [0, 0, 0, 0]
+    weeks_fuel_target = [round(cfg.fuel_target_price or 0, 2) for _ in weeks_labels]
+
+    chart_months = []
+    chart_month_net = []
+
+    y3, m3 = year, month
+    months12 = []
+    for _ in range(12):
+        months12.append((y3, m3))
+        m3 -= 1
+        if m3 == 0:
+            m3 = 12
+            y3 -= 1
+    months12 = list(reversed(months12))
+
+    for (yy, mm) in months12:
+        _, _, _, _, totals2, _, _, _ = compute_month_aggregate(yy, mm)
+        chart_months.append(month_label(yy, mm))
+        chart_month_net.append(round(totals2["net"] or 0, 2))
+
+    _draw_footer(c, page)
+    c.showPage()
+    page += 1
+
+    y = _draw_header(
+        c,
+        PDF_BRAND,
+        "MONTHLY CHARTS",
+        f"Year/Month: {year}/{month:02d}",
+        "Charts Overview"
+    )
+
+    x = 36
+    w_panel = letter[0] - 72
+
+    chart1 = _build_chart_image(
+        "bar",
+        weeks_labels,
+        [
+            {"label": "Revenue", "data": weeks_revenue},
+            {"label": "Expenses", "data": weeks_expenses},
+        ],
+        title="Revenue x Expenses by Week",
+        height=2.6,
+    )
+
+    chart2 = _build_chart_image(
+        "line",
+        weeks_labels,
+        [
+            {"label": "Net", "data": weeks_net},
+        ],
+        title="Net by Week",
+        height=2.6,
+    )
+
+    _panel(c, x, y - 250, w_panel, 235, title="Chart 1")
+    _draw_chart_from_buffer(c, chart1, x + 12, y - 238, w_panel - 24, 205)
+
+    y2 = (y - 250) - 18
+    _panel(c, x, y2 - 250, w_panel, 235, title="Chart 2")
+    _draw_chart_from_buffer(c, chart2, x + 12, y2 - 238, w_panel - 24, 205)
+
+    _draw_footer(c, page)
+    c.showPage()
+    page += 1
+
+    y = _draw_header(
+        c,
+        PDF_BRAND,
+        "MONTHLY CHARTS",
+        f"Year/Month: {year}/{month:02d}",
+        "Fuel + Trend"
+    )
+
+    chart3 = _build_chart_image(
+        "bar",
+        weeks_labels,
+        [
+            {"label": "Fuel Avg", "data": weeks_avg_fuel},
+            {"label": "Fuel Target", "data": weeks_fuel_target},
+        ],
+        title="Average Fuel Price x Target",
+        height=2.6,
+    )
+
+    chart4 = _build_chart_image(
+        "line",
+        chart_months,
+        [
+            {"label": "Monthly Net", "data": chart_month_net},
+        ],
+        title="Monthly Net - Last 12 Months",
+        height=2.6,
+    )
+
+    _panel(c, x, y - 250, w_panel, 235, title="Chart 3")
+    _draw_chart_from_buffer(c, chart3, x + 12, y - 238, w_panel - 24, 205)
+
+    y2 = (y - 250) - 18
+    _panel(c, x, y2 - 250, w_panel, 235, title="Chart 4")
+    _draw_chart_from_buffer(c, chart4, x + 12, y2 - 238, w_panel - 24, 205)
+
     _draw_footer(c, page)
     c.showPage()
     c.save()
@@ -949,7 +1222,6 @@ def monthly_pdf(year, month):
     buffer.seek(0)
     filename = f"ironway_month_{year}_{month:02d}.pdf"
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype="application/pdf")
-
 
 @app.route("/dashboard")
 @login_required
@@ -1028,39 +1300,9 @@ def dashboard():
         result_pct_sum += float(calc["result_percent"] or 0)
         result_pct_n += 1
 
-        motorista_nome = "--"
-        if getattr(w, "motorista", None):
-            motorista_nome = (
-                getattr(w.motorista, "nome", None)
-                or getattr(w.motorista, "name", None)
-                or getattr(w.motorista, "full_name", None)
-                or "--"
-            )
-
-        dispatcher_nome = "--"
-        if getattr(w, "dispatcher", None):
-            dispatcher_nome = (
-                getattr(w.dispatcher, "nome", None)
-                or getattr(w.dispatcher, "name", None)
-                or getattr(w.dispatcher, "full_name", None)
-                or "--"
-            )
-
-        veiculo_nome = "--"
-        if getattr(w, "veiculo", None):
-            veiculo_base = (
-                getattr(w.veiculo, "nome", None)
-                or getattr(w.veiculo, "name", None)
-                or getattr(w.veiculo, "modelo", None)
-                or getattr(w.veiculo, "placa", None)
-                or "--"
-            )
-            veiculo_placa = getattr(w.veiculo, "placa", None)
-
-            if veiculo_placa and veiculo_placa != veiculo_base:
-                veiculo_nome = f"{veiculo_base} - {veiculo_placa}"
-            else:
-                veiculo_nome = veiculo_base
+        motorista_nome = motoristas_map.get(getattr(w, "motorista_id", None), "--")
+        dispatcher_nome = dispatchers_map.get(getattr(w, "dispatcher_id", None), "--")
+        veiculo_nome = veiculos_map.get(getattr(w, "veiculo_id", None), "--")
 
         week_cards.append({
             "id": w.id,
