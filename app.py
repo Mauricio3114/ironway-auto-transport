@@ -3,7 +3,7 @@ import io
 from datetime import datetime, date
 from functools import wraps
 
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, render_template_string
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -122,9 +122,48 @@ class WeeklyClose(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
+    motorista_id = db.Column(db.Integer, db.ForeignKey("motoristas.id"), nullable=True)
+    dispatcher_id = db.Column(db.Integer, db.ForeignKey("dispatchers.id"), nullable=True)
+    veiculo_id = db.Column(db.Integer, db.ForeignKey("veiculos.id"), nullable=True)
+
+    motorista = db.relationship("Motorista", foreign_keys=[motorista_id])
+    dispatcher = db.relationship("Dispatcher", foreign_keys=[dispatcher_id])
+    veiculo = db.relationship("Veiculo", foreign_keys=[veiculo_id])
+
     __table_args__ = (
         db.UniqueConstraint("year", "month", "week_no", name="uq_weekclose_year_month_week"),
     )
+
+
+class Motorista(db.Model):
+    __tablename__ = "motoristas"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)
+    telefone = db.Column(db.String(40), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Dispatcher(db.Model):
+    __tablename__ = "dispatchers"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)
+    telefone = db.Column(db.String(40), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Veiculo(db.Model):
+    __tablename__ = "veiculos"
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(120), nullable=False)       # ex: Amarok / Hilux / Caminhão Volvo
+    placa = db.Column(db.String(30), nullable=True)
+    modelo = db.Column(db.String(120), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
 # =========================
@@ -205,6 +244,22 @@ def ensure_schema_updates():
             stmts.append("ALTER TABLE monthly_config ADD COLUMN dispatcher_percent FLOAT DEFAULT 10.0")
         if "fuel_target_price" not in cols:
             stmts.append("ALTER TABLE monthly_config ADD COLUMN fuel_target_price FLOAT DEFAULT 3.30")
+
+        for stmt in stmts:
+            db.session.execute(text(stmt))
+        if stmts:
+            db.session.commit()
+
+    if "weekly_close" in inspector.get_table_names():
+        cols = {c["name"] for c in inspector.get_columns("weekly_close")}
+
+        stmts = []
+        if "motorista_id" not in cols:
+            stmts.append("ALTER TABLE weekly_close ADD COLUMN motorista_id INTEGER")
+        if "dispatcher_id" not in cols:
+            stmts.append("ALTER TABLE weekly_close ADD COLUMN dispatcher_id INTEGER")
+        if "veiculo_id" not in cols:
+            stmts.append("ALTER TABLE weekly_close ADD COLUMN veiculo_id INTEGER")
 
         for stmt in stmts:
             db.session.execute(text(stmt))
@@ -300,6 +355,10 @@ def compute_week_calc(w: WeeklyClose, weeks_in_month: int, fixed_month_total: fl
 def compute_month_aggregate(year: int, month: int):
     cfg = get_or_create_month_config(year, month)
     fixed_month_total, _ = get_fixed_costs_sum(year, month)
+
+    motoristas = Motorista.query.order_by(Motorista.nome.asc()).all()
+    dispatchers = Dispatcher.query.order_by(Dispatcher.nome.asc()).all()
+    veiculos = Veiculo.query.order_by(Veiculo.nome.asc()).all()
 
     weeks_rows = WeeklyClose.query.filter_by(year=year, month=month)\
         .order_by(WeeklyClose.week_no.asc()).all()
@@ -565,6 +624,10 @@ def weekly_edit(year, month, week_no):
     cfg = get_or_create_month_config(year, month)
     fixed_total, _ = get_fixed_costs_sum(year, month)
 
+    motoristas = Motorista.query.order_by(Motorista.nome.asc()).all()
+    dispatchers = Dispatcher.query.order_by(Dispatcher.nome.asc()).all()
+    veiculos = Veiculo.query.order_by(Veiculo.nome.asc()).all()
+
     row = WeeklyClose.query.filter_by(year=year, month=month, week_no=week_no).first()
 
     if request.method == "POST":
@@ -577,6 +640,10 @@ def weekly_edit(year, month, week_no):
         cargo = _to_float(request.form.get("cargo_insurance_weekly"), 250.0)
         miles = _to_float(request.form.get("miles"), 0.0)
         gallons = _to_float(request.form.get("gallons"), 0.0)
+
+        motorista_id = _to_int(request.form.get("motorista_id"), 0) or None
+        dispatcher_id = _to_int(request.form.get("dispatcher_id"), 0) or None
+        veiculo_id = _to_int(request.form.get("veiculo_id"), 0) or None
 
         notes = (request.form.get("notes") or "").strip() or None
         payment_status = (request.form.get("payment_status") or "pendente").strip().lower()
@@ -595,6 +662,9 @@ def weekly_edit(year, month, week_no):
         row.cargo_insurance_weekly = cargo
         row.miles = miles
         row.gallons = gallons
+        row.motorista_id = motorista_id
+        row.dispatcher_id = dispatcher_id
+        row.veiculo_id = veiculo_id
         row.notes = notes
         row.payment_status = payment_status
 
@@ -603,7 +673,12 @@ def weekly_edit(year, month, week_no):
         return redirect(url_for("dashboard", year=year, month=month))
 
     if not row:
-        row = WeeklyClose(year=year, month=month, week_no=week_no, cargo_insurance_weekly=250.0)
+        row = WeeklyClose(
+            year=year,
+            month=month,
+            week_no=week_no,
+            cargo_insurance_weekly=250.0
+        )
 
     preview = compute_week_calc(row, cfg.weeks_in_month, fixed_total, cfg)
 
@@ -619,6 +694,9 @@ def weekly_edit(year, month, week_no):
         driver_percent=cfg.driver_percent,
         dispatcher_percent=cfg.dispatcher_percent,
         fuel_target_price=cfg.fuel_target_price,
+        motoristas=motoristas,
+        dispatchers=dispatchers,
+        veiculos=veiculos,
     )
 
 
@@ -884,7 +962,28 @@ def dashboard():
     cfg = get_or_create_month_config(year, month)
     fixed_month_total, fixed_rows = get_fixed_costs_sum(year, month)
 
-    weeks = WeeklyClose.query.filter_by(year=year, month=month).order_by(WeeklyClose.week_no.asc()).all()
+    from sqlalchemy.orm import joinedload
+
+    weeks = (
+        WeeklyClose.query
+        .options(
+            joinedload(WeeklyClose.motorista),
+            joinedload(WeeklyClose.dispatcher),
+            joinedload(WeeklyClose.veiculo),
+        )
+        .filter_by(year=year, month=month)
+        .order_by(WeeklyClose.week_no.asc())
+        .all()
+    )
+
+    motoristas_map = {m.id: m.nome for m in Motorista.query.all()}
+    dispatchers_map = {d.id: d.nome for d in Dispatcher.query.all()}
+    veiculos_map = {}
+    for v in Veiculo.query.all():
+        if v.placa and v.nome:
+            veiculos_map[v.id] = f"{v.nome} - {v.placa}"
+        else:
+            veiculos_map[v.id] = v.nome or v.modelo or v.placa or "--"
 
     week_cards = []
 
@@ -929,12 +1028,49 @@ def dashboard():
         result_pct_sum += float(calc["result_percent"] or 0)
         result_pct_n += 1
 
+        motorista_nome = "--"
+        if getattr(w, "motorista", None):
+            motorista_nome = (
+                getattr(w.motorista, "nome", None)
+                or getattr(w.motorista, "name", None)
+                or getattr(w.motorista, "full_name", None)
+                or "--"
+            )
+
+        dispatcher_nome = "--"
+        if getattr(w, "dispatcher", None):
+            dispatcher_nome = (
+                getattr(w.dispatcher, "nome", None)
+                or getattr(w.dispatcher, "name", None)
+                or getattr(w.dispatcher, "full_name", None)
+                or "--"
+            )
+
+        veiculo_nome = "--"
+        if getattr(w, "veiculo", None):
+            veiculo_base = (
+                getattr(w.veiculo, "nome", None)
+                or getattr(w.veiculo, "name", None)
+                or getattr(w.veiculo, "modelo", None)
+                or getattr(w.veiculo, "placa", None)
+                or "--"
+            )
+            veiculo_placa = getattr(w.veiculo, "placa", None)
+
+            if veiculo_placa and veiculo_placa != veiculo_base:
+                veiculo_nome = f"{veiculo_base} - {veiculo_placa}"
+            else:
+                veiculo_nome = veiculo_base
+
         week_cards.append({
             "id": w.id,
             "week_no": int(w.week_no),
             "label": f"Sem {w.week_no}",
             "period": f"{w.period_start or '--'} → {w.period_end or '--'}",
             "payment_status": w.payment_status,
+            "motorista_nome": motorista_nome,
+            "dispatcher_nome": dispatcher_nome,
+            "veiculo_nome": veiculo_nome,
             "calc": calc,
         })
 
@@ -1029,6 +1165,8 @@ def dashboard():
         pie_labels.append("Fixed Costs")
         pie_values.append(round(fixed_rateated_month, 2))
 
+    current_week = week_cards[-1] if week_cards else None
+
     return render_template(
         "admin_dashboard.html",
         year=year,
@@ -1037,6 +1175,7 @@ def dashboard():
 
         monthly=monthly,
         weeks=week_cards,
+        current_week=current_week,
 
         weeks_in_month=cfg.weeks_in_month,
         fixed_month_total=fixed_month_total,
@@ -1055,7 +1194,6 @@ def dashboard():
         avg_fuel_price_month=avg_fuel_price_month,
         result_percent_month=result_percent_month,
 
-        # compatibilidade temporária
         mpg_month=dollars_per_mile_month,
 
         chart_weeks_labels=weeks_labels,
@@ -1204,6 +1342,329 @@ def admin_fixos():
         driver_percent=cfg.driver_percent,
         dispatcher_percent=cfg.dispatcher_percent,
         fuel_target_price=cfg.fuel_target_price,
+    )
+
+
+ADMIN_CADASTRO_BASE = """
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ titulo }}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <style>
+    body{margin:0;background:#070b16;color:#e5e7eb;font-family:Arial,sans-serif}
+    .page{padding:22px;min-height:100vh;box-sizing:border-box}
+    .shell{display:grid;grid-template-columns:340px 1fr;gap:18px}
+    .hero,.content{
+      border-radius:24px;
+      border:1px solid rgba(148,163,184,0.12);
+      background:linear-gradient(180deg, rgba(2,6,23,0.88), rgba(15,23,42,0.82));
+      box-shadow:0 22px 60px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.03);
+    }
+    .hero{padding:30px;min-height:620px;display:flex;flex-direction:column;justify-content:space-between}
+    .content{padding:18px}
+    .hero h1{margin:0 0 12px;font-size:48px;line-height:.95}
+    .hero p{margin:0;color:#cbd5e1;line-height:1.6}
+    .hero-actions{display:flex;flex-direction:column;gap:12px}
+    .hero-btn,.btn,.btn-danger{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:13px 18px;border-radius:999px;text-decoration:none;font-weight:900;border:none;cursor:pointer
+    }
+    .hero-btn,.btn{
+      color:#06110a;background:linear-gradient(135deg, rgba(34,197,94,1), rgba(34,197,94,0.78))
+    }
+    .btn-outline{
+      background:rgba(15,23,42,0.55);color:#e2e8f0;border:1px solid rgba(148,163,184,0.16)
+    }
+    .btn-danger{
+      color:#fecaca;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.26)
+    }
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .panel{
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:20px;
+      padding:18px;
+      background:linear-gradient(180deg, rgba(2,6,23,.18), rgba(15,23,42,.24));
+    }
+    .panel h3{margin:0 0 10px}
+    .muted{color:#94a3b8}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+    .field{flex:1 1 220px}
+    .field label{display:block;font-size:12px;color:#94a3b8;margin-bottom:6px}
+    .input{
+      width:100%;box-sizing:border-box;background:#020817;color:#fff;border:1px solid rgba(148,163,184,.16);
+      border-radius:14px;padding:12px 14px
+    }
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:12px 10px;border-bottom:1px solid rgba(148,163,184,.12);text-align:left}
+    .table th{font-size:12px;color:#94a3b8}
+    .actions{display:flex;gap:10px;flex-wrap:wrap}
+    .flash-area{margin-bottom:14px}
+    .flash{padding:12px 14px;border-radius:14px;margin-bottom:8px;font-weight:700}
+    .flash.success{background:rgba(34,197,94,.12);color:#86efac;border:1px solid rgba(34,197,94,.24)}
+    .flash.error{background:rgba(239,68,68,.12);color:#fecaca;border:1px solid rgba(239,68,68,.24)}
+    @media (max-width: 1000px){
+      .shell,.grid{grid-template-columns:1fr}
+      .hero{min-height:auto}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="shell">
+      <div class="hero">
+        <div>
+          <h1>{{ titulo }}</h1>
+          <p>{{ subtitulo }}</p>
+        </div>
+
+        <div class="hero-actions">
+          <a class="hero-btn btn-outline" href="{{ url_for('dashboard') }}">← Voltar</a>
+          <a class="hero-btn btn-outline" href="{{ url_for('logout') }}">Sair</a>
+        </div>
+      </div>
+
+      <div class="content">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flash-area">
+              {% for cat, msg in messages %}
+                <div class="flash {{ cat }}">{{ msg }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
+
+        <div class="panel" style="margin-bottom:16px;">
+          <h3>Novo cadastro</h3>
+          <form method="post">
+            <input type="hidden" name="action" value="add">
+
+            <div class="row">
+              <div class="field">
+                <label>Nome</label>
+                <input class="input" type="text" name="nome" required>
+              </div>
+
+              <div class="field">
+                <label>{{ campo2_label }}</label>
+                <input class="input" type="text" name="campo2">
+              </div>
+
+              <div class="field">
+                <label>{{ campo3_label }}</label>
+                <input class="input" type="text" name="campo3">
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+              <div class="field" style="flex:1 1 100%;">
+                <label>Observações</label>
+                <textarea class="input" name="observacoes" rows="3"></textarea>
+              </div>
+            </div>
+
+            <div class="row" style="margin-top:12px;">
+              <button class="btn" type="submit">Salvar cadastro</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="panel">
+          <h3>Cadastros salvos</h3>
+
+          {% if rows %}
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>{{ campo2_label }}</th>
+                  <th>{{ campo3_label }}</th>
+                  <th>Observações</th>
+                  <th style="text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rows %}
+                <tr>
+                  <td><b>{{ r.nome }}</b></td>
+                  <<td>{{ getattr(r, campo2_attr) if campo2_attr else '--' }}</td>
+                  <td>{{ getattr(r, campo3_attr) if campo3_attr else '--' }}</td>
+                  <td>{{ r.observacoes or '--' }}</td>
+                  <td style="text-align:right;">
+                    <form method="post" style="display:inline;">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="item_id" value="{{ r.id }}">
+                      <button class="btn-danger" type="submit">Remover</button>
+                    </form>
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% else %}
+            <p class="muted">Nenhum cadastro ainda.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+"""
+
+
+@app.route("/admin/motoristas", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_motoristas():
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+
+        if action == "add":
+            nome = (request.form.get("nome") or "").strip()
+            telefone = (request.form.get("campo2") or "").strip() or None
+            observacoes = (request.form.get("observacoes") or "").strip() or None
+
+            if not nome:
+                flash("Informe o nome do motorista.", "error")
+                return redirect(url_for("admin_motoristas"))
+
+            row = Motorista(
+                nome=nome,
+                telefone=telefone,
+                observacoes=observacoes,
+            )
+            db.session.add(row)
+            db.session.commit()
+            flash("Motorista cadastrado com sucesso.", "success")
+            return redirect(url_for("admin_motoristas"))
+
+        if action == "delete":
+            item_id = _to_int(request.form.get("item_id"), 0)
+            row = Motorista.query.get(item_id)
+            if row:
+                db.session.delete(row)
+                db.session.commit()
+                flash("Motorista removido.", "success")
+            return redirect(url_for("admin_motoristas"))
+
+    rows = Motorista.query.order_by(Motorista.nome.asc()).all()
+
+    return render_template_string(
+        ADMIN_CADASTRO_BASE,
+        titulo="Motoristas",
+        subtitulo="Cadastre os motoristas da operação para usar depois nos relatórios e fechamentos.",
+        rows=rows,
+        campo2_label="Telefone",
+        campo3_label="—",
+        campo2_attr="telefone",
+        campo3_attr=None,
+        getattr=getattr,
+    )
+
+
+@app.route("/admin/dispatchers", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_dispatchers():
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+
+        if action == "add":
+            nome = (request.form.get("nome") or "").strip()
+            telefone = (request.form.get("campo2") or "").strip() or None
+            observacoes = (request.form.get("observacoes") or "").strip() or None
+
+            if not nome:
+                flash("Informe o nome do dispatcher.", "error")
+                return redirect(url_for("admin_dispatchers"))
+
+            row = Dispatcher(
+                nome=nome,
+                telefone=telefone,
+                observacoes=observacoes,
+            )
+            db.session.add(row)
+            db.session.commit()
+            flash("Dispatcher cadastrado com sucesso.", "success")
+            return redirect(url_for("admin_dispatchers"))
+
+        if action == "delete":
+            item_id = _to_int(request.form.get("item_id"), 0)
+            row = Dispatcher.query.get(item_id)
+            if row:
+                db.session.delete(row)
+                db.session.commit()
+                flash("Dispatcher removido.", "success")
+            return redirect(url_for("admin_dispatchers"))
+
+    rows = Dispatcher.query.order_by(Dispatcher.nome.asc()).all()
+
+    return render_template_string(
+        ADMIN_CADASTRO_BASE,
+        titulo="Dispatchers",
+        subtitulo="Cadastre os dispatchers da empresa para usar depois no relatório mensal e semanal.",
+        rows=rows,
+        campo2_label="Telefone",
+        campo3_label="—",
+        campo2_attr="telefone",
+        campo3_attr=None,
+        getattr=getattr,
+    )
+
+
+@app.route("/admin/veiculos", methods=["GET", "POST"])
+@login_required
+@admin_required
+def admin_veiculos():
+    if request.method == "POST":
+        action = (request.form.get("action") or "").strip()
+
+        if action == "add":
+            nome = (request.form.get("nome") or "").strip()
+            placa = (request.form.get("campo2") or "").strip() or None
+            modelo = (request.form.get("campo3") or "").strip() or None
+            observacoes = (request.form.get("observacoes") or "").strip() or None
+
+            if not nome:
+                flash("Informe o nome do veículo.", "error")
+                return redirect(url_for("admin_veiculos"))
+
+            row = Veiculo(
+                nome=nome,
+                placa=placa,
+                modelo=modelo,
+                observacoes=observacoes,
+            )
+            db.session.add(row)
+            db.session.commit()
+            flash("Veículo cadastrado com sucesso.", "success")
+            return redirect(url_for("admin_veiculos"))
+
+        if action == "delete":
+            item_id = _to_int(request.form.get("item_id"), 0)
+            row = Veiculo.query.get(item_id)
+            if row:
+                db.session.delete(row)
+                db.session.commit()
+                flash("Veículo removido.", "success")
+            return redirect(url_for("admin_veiculos"))
+
+    rows = Veiculo.query.order_by(Veiculo.nome.asc()).all()
+
+    return render_template_string(
+        ADMIN_CADASTRO_BASE,
+        titulo="Veículos / Frota",
+        subtitulo="Cadastre os veículos da frota para usar depois nos relatórios com nome, placa e modelo.",
+        rows=rows,
+        campo2_label="Placa",
+        campo3_label="Modelo",
+        campo2_attr="placa",
+        campo3_attr="modelo",
+        getattr=getattr,
     )
 
 

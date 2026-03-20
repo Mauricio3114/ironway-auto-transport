@@ -7,34 +7,90 @@
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <style>
-    .grid { display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); }
-    .card { grid-column: span 3; }
-    .card.w4 { grid-column: span 4; }
-    .card.w6 { grid-column: span 6; }
-    .card.w8 { grid-column: span 8; }
-    .card.w12 { grid-column: span 12; }
-
-    .row { display:grid; gap:10px; grid-template-columns: repeat(12, 1fr); }
-    .col-3 { grid-column: span 3; }
-    .col-4 { grid-column: span 4; }
-    .col-6 { grid-column: span 6; }
-    .col-8 { grid-column: span 8; }
-    .col-12 { grid-column: span 12; }
-
-    @media (max-width: 1100px){
-      .card, .card.w4, .card.w6, .card.w8 { grid-column: span 12; }
-      .col-3, .col-4, .col-6, .col-8 { grid-column: span 12; }
+    .page{
+      max-width: 1720px;
+      margin: 0 auto;
+      padding: 20px;
+      box-sizing: border-box;
     }
 
-    label { display:block; font-size:12px; opacity:.82; margin:0 0 6px; }
-    .help { font-size:12px; opacity:.72; margin-top:6px; }
-    .hr { height:1px; background: rgba(148,163,184,.12); margin:12px 0; }
-    .kpi2 { font-size:22px; font-weight:900; margin-top:6px; }
-    .kpi3 { font-size:18px; font-weight:900; margin-top:4px; }
+    .page-head{
+      margin-bottom: 18px;
+      display:flex;
+      align-items:flex-end;
+      gap:12px;
+      flex-wrap:wrap;
+    }
 
-    .right { display:flex; gap:10px; justify-content:flex-end; align-items:center; flex-wrap:wrap; }
+    .page-head h1{
+      font-size: 28px;
+      line-height: 1.15;
+      margin-bottom: 10px;
+    }
 
-    .badge {
+.weekly-layout{
+  display:grid;
+  grid-template-columns: minmax(920px, 2.4fr) minmax(340px, 0.8fr);
+  gap:18px;
+  align-items:start;
+}
+
+    .panel{
+      padding: 20px;
+      box-sizing: border-box;
+      min-width: 0;
+    }
+
+    .main-panel{
+      min-height: 560px;
+    }
+
+    .preview-panel{
+      min-height: 560px;
+      position: sticky;
+      top: 18px;
+    }
+
+    label{
+      display:block;
+      font-size:12px;
+      opacity:.82;
+      margin:0 0 6px;
+    }
+
+    .help{
+      font-size:12px;
+      opacity:.72;
+      margin-top:6px;
+    }
+
+    .hr{
+      height:1px;
+      background: rgba(148,163,184,.12);
+      margin:12px 0;
+    }
+
+    .kpi2{
+      font-size:22px;
+      font-weight:900;
+      margin-top:6px;
+    }
+
+    .kpi3{
+      font-size:18px;
+      font-weight:900;
+      margin-top:4px;
+    }
+
+    .right{
+      display:flex;
+      gap:10px;
+      justify-content:flex-end;
+      align-items:center;
+      flex-wrap:wrap;
+    }
+
+    .badge{
       display:inline-flex;
       align-items:center;
       gap:8px;
@@ -46,24 +102,28 @@
       font-size:12px;
       color:#e2e8f0;
     }
-    .green { color:#86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.10); }
-    .red { color:#fecaca; border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.10); }
-    .yellow { color:#fde68a; border-color: rgba(250,204,21,.25); background: rgba(250,204,21,.10); }
-    .orange { color:#fdba74; border-color: rgba(249,115,22,.25); background: rgba(249,115,22,.10); }
-    .blue { color:#7dd3fc; border-color: rgba(56,189,248,.25); background: rgba(56,189,248,.10); }
-    .gray { color:#cbd5e1; border-color: rgba(148,163,184,.20); background: rgba(100,116,139,.10); }
+
+    .green{ color:#86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.10); }
+    .red{ color:#fecaca; border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.10); }
+    .yellow{ color:#fde68a; border-color: rgba(250,204,21,.25); background: rgba(250,204,21,.10); }
+    .orange{ color:#fdba74; border-color: rgba(249,115,22,.25); background: rgba(249,115,22,.10); }
+    .blue{ color:#7dd3fc; border-color: rgba(56,189,248,.25); background: rgba(56,189,248,.10); }
+    .gray{ color:#cbd5e1; border-color: rgba(148,163,184,.20); background: rgba(100,116,139,.10); }
 
     .summary-grid{
       display:grid;
       grid-template-columns: 1fr 1fr;
       gap:12px;
     }
+
     .sum-box{
       border:1px solid rgba(148,163,184,.12);
       border-radius:16px;
       padding:12px;
       background: rgba(2,6,23,.18);
+      min-width: 0;
     }
+
     .sum-title{
       font-size:12px;
       opacity:.72;
@@ -77,7 +137,6 @@
       margin-top:8px;
     }
 
-    /* Botões compactos */
     .btn-compact{
       padding: 10px 14px !important;
       border-radius: 999px !important;
@@ -86,6 +145,7 @@
       gap:10px;
       align-items:center;
     }
+
     .btn-ico{
       width:28px;
       height:28px;
@@ -95,14 +155,93 @@
       border:1px solid rgba(148,163,184,0.18);
       background: rgba(2,6,23,0.25);
     }
-    .btn-ico svg{ width:16px; height:16px; opacity:.95; }
+
+    .btn-ico svg{
+      width:16px;
+      height:16px;
+      opacity:.95;
+    }
+
+    .muted-line{
+      margin-top:12px;
+    }
+
+    .weekly-form-grid{
+      display:grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap:14px;
+      align-items:start;
+    }
+
+    .field{
+      min-width:0;
+    }
+
+    .span-12{ grid-column: span 12; }
+    .span-8{ grid-column: span 8; }
+    .span-6{ grid-column: span 6; }
+    .span-4{ grid-column: span 4; }
+
+    .triple-selects{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+    }
+
+    .input,
+    select.input,
+    textarea.input{
+      width:100%;
+      box-sizing:border-box;
+    }
+
+    @media (max-width: 1400px){
+      .weekly-layout{
+        grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr);
+      }
+    }
+
+    @media (max-width: 1100px){
+      .weekly-layout{
+        grid-template-columns: 1fr;
+      }
+
+      .preview-panel{
+        position: static;
+      }
+    }
+
+    @media (max-width: 768px){
+      .page{
+        padding:16px;
+      }
+
+      .weekly-form-grid{
+        grid-template-columns: repeat(1, minmax(0, 1fr));
+      }
+
+      .span-12,
+      .span-8,
+      .span-6,
+      .span-4{
+        grid-column: 1 / -1;
+      }
+
+      .triple-selects{
+        grid-template-columns: 1fr;
+      }
+
+      .summary-grid{
+        grid-template-columns: 1fr;
+      }
+    }
   </style>
 </head>
 
 <body>
   <div class="page">
 
-    <div class="page-head" style="display:flex; align-items:flex-end; gap:12px; flex-wrap:wrap;">
+    <div class="page-head">
       <div>
         <h1>FECHAR SEMANA • {{ year }}/{{ "%02d"|format(month) }} • Semana {{ week_no }}</h1>
         <p class="muted">
@@ -184,29 +323,73 @@
       {% endif %}
     {% endwith %}
 
-    <div class="grid">
+    <div class="weekly-layout">
 
       <!-- FORM -->
-      <div class="panel card w8" style="grid-column: span 8;">
+      <div class="panel card main-panel">
         <h3 style="margin:0 0 10px;">Lançamento da Semana</h3>
-        <p class="muted small" style="margin-top:4px;">
+        <p class="muted small muted-line">
           Dica: use datas no formato <b>YYYY-MM-DD</b> (ex: 2026-03-01)
         </p>
 
         <div class="hr"></div>
 
         <form method="POST">
-          <div class="row">
-            <div class="col-6">
+          <div class="weekly-form-grid">
+
+            <div class="field span-6">
               <label>Período início</label>
               <input class="input" name="period_start" value="{{ row.period_start if row else '' }}" placeholder="2026-03-01">
             </div>
-            <div class="col-6">
+
+            <div class="field span-6">
               <label>Período fim</label>
               <input class="input" name="period_end" value="{{ row.period_end if row else '' }}" placeholder="2026-03-07">
             </div>
 
-            <div class="col-4">
+            <div class="field span-12">
+              <div class="triple-selects">
+
+                <div class="field">
+                  <label>Motorista</label>
+                  <select class="input" name="motorista_id">
+                    <option value="">Selecione</option>
+                    {% for m in motoristas %}
+                      <option value="{{ m.id }}" {% if row and row.motorista_id == m.id %}selected{% endif %}>
+                        {{ m.nome }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Dispatcher</label>
+                  <select class="input" name="dispatcher_id">
+                    <option value="">Selecione</option>
+                    {% for d in dispatchers %}
+                      <option value="{{ d.id }}" {% if row and row.dispatcher_id == d.id %}selected{% endif %}>
+                        {{ d.nome }}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+                <div class="field">
+                  <label>Veículo / Frota</label>
+                  <select class="input" name="veiculo_id">
+                    <option value="">Selecione</option>
+                    {% for v in veiculos %}
+                      <option value="{{ v.id }}" {% if row and row.veiculo_id == v.id %}selected{% endif %}>
+                        {{ v.nome }}{% if v.placa %} - {{ v.placa }}{% endif %}
+                      </option>
+                    {% endfor %}
+                  </select>
+                </div>
+
+              </div>
+            </div>
+
+            <div class="field span-8">
               <label>Receita (Revenue)</label>
               <input class="input" name="revenue" value="{{ row.revenue if row else '' }}" placeholder="12000">
               <div class="help">
@@ -214,35 +397,35 @@
               </div>
             </div>
 
-            <div class="col-4">
+            <div class="field span-4">
               <label>Fuel (Total pago)</label>
               <input class="input" name="fuel" value="{{ row.fuel if row else '' }}" placeholder="2400">
               <div class="help">Valor total pago na semana</div>
             </div>
 
-            <div class="col-4">
+            <div class="field span-12">
               <label>Despesas extras</label>
               <input class="input" name="extra_expenses" value="{{ row.extra_expenses if row else '' }}" placeholder="300">
             </div>
 
-            <div class="col-4">
+            <div class="field span-4">
               <label>Cargo insurance (weekly)</label>
               <input class="input" name="cargo_insurance_weekly" value="{{ row.cargo_insurance_weekly if row else 250.0 }}" placeholder="250">
             </div>
 
-            <div class="col-4">
+            <div class="field span-4">
               <label>Miles</label>
               <input class="input" name="miles" value="{{ row.miles if row else '' }}" placeholder="2400">
               <div class="help">Usado para calcular $ / milha</div>
             </div>
 
-            <div class="col-4">
+            <div class="field span-4">
               <label>Gallons</label>
               <input class="input" name="gallons" value="{{ row.gallons if row else '' }}" placeholder="320">
               <div class="help">Usado para média do combustível</div>
             </div>
 
-            <div class="col-6">
+            <div class="field span-6">
               <label>Status pagamento</label>
               {% set ps = (row.payment_status if row else 'pendente') %}
               <select class="input" name="payment_status">
@@ -251,16 +434,17 @@
               </select>
             </div>
 
-            <div class="col-6">
+            <div class="field span-6">
               <label>Fuel Target do mês</label>
               <input class="input" value="${{ "%.2f"|format(fuel_target_price or 0) }}" disabled>
               <div class="help">Configurado em Fixed Costs / Finance Config</div>
             </div>
 
-            <div class="col-12">
+            <div class="field span-12">
               <label>Notas</label>
               <textarea class="input" name="notes" rows="4" placeholder="Observações da semana...">{{ row.notes if row and row.notes else '' }}</textarea>
             </div>
+
           </div>
 
           <div class="hr"></div>
@@ -272,7 +456,7 @@
       </div>
 
       <!-- PREVIEW -->
-      <div class="panel card w4" style="grid-column: span 4;">
+      <div class="panel card preview-panel">
         <h3 style="margin:0 0 10px;">Prévia do Cálculo</h3>
         <p class="muted small" style="margin-top:4px;">
           Atualiza ao salvar. A prévia usa os valores atualmente carregados.

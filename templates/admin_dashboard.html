@@ -9,42 +9,243 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-.grid { display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); }
-.card { grid-column: span 3; }
-.card.w4 { grid-column: span 4; }
-.card.w6 { grid-column: span 6; }
-.card.w8 { grid-column: span 8; }
-.card.w12 { grid-column: span 12; }
+body{
+  margin:0;
+}
+
+.page{
+  max-width: 1900px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 20px 40px;
+  box-sizing: border-box;
+}
+
+.sidebar{
+  width:290px;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+  padding:22px 18px;
+  box-sizing:border-box;
+  background:
+    linear-gradient(180deg, rgba(2,6,23,0.98) 0%, rgba(15,23,42,0.98) 100%);
+  border-right:1px solid rgba(148,163,184,0.14);
+  box-shadow:
+    18px 0 40px rgba(0,0,0,0.35),
+    inset -1px 0 0 rgba(255,255,255,0.03);
+}
+
+.sidebar-top{
+  display:flex;
+  flex-direction:column;
+  gap:24px;
+}
+
+.sidebar-logo-wrap{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:16px 14px;
+  border-radius:22px;
+  background:linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,41,59,0.65));
+  border:1px solid rgba(148,163,184,0.12);
+  box-shadow:
+    0 18px 40px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+.sidebar-logo-dot{
+  width:18px;
+  height:18px;
+  border-radius:999px;
+  background:radial-gradient(circle at 30% 30%, #22c55e, #38bdf8);
+  box-shadow:
+    0 0 0 6px rgba(34,197,94,0.08),
+    0 0 18px rgba(56,189,248,0.30);
+  flex-shrink:0;
+}
+
+.sidebar-logo{
+  font-size:28px;
+  font-weight:1000;
+  letter-spacing:1px;
+  color:#f8fafc;
+  line-height:1;
+}
+
+.sidebar-logo-sub{
+  font-size:12px;
+  color:#94a3b8;
+  margin-top:6px;
+}
+
+.sidebar-nav{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.side-link{
+  width:100%;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  text-decoration:none;
+  color:#dbeafe;
+  padding:16px 18px;
+  border-radius:18px;
+  font-weight:900;
+  font-size:17px;
+  line-height:1.2;
+  position:relative;
+  overflow:hidden;
+  box-sizing:border-box;
+  border:1px solid rgba(148,163,184,0.10);
+  background:linear-gradient(135deg, rgba(15,23,42,0.72), rgba(15,23,42,0.36));
+  transition:
+    transform .18s ease,
+    background .22s ease,
+    border-color .22s ease,
+    box-shadow .22s ease,
+    color .22s ease;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+  cursor:pointer;
+}
+
+.side-link::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:10px;
+  bottom:10px;
+  width:0;
+  border-radius:999px;
+  background:linear-gradient(180deg, #38bdf8, #22c55e);
+  transition:width .20s ease;
+}
+
+.side-link:hover{
+  transform:translateX(8px);
+  color:#ffffff;
+  border-color:rgba(56,189,248,0.26);
+  background:linear-gradient(90deg, rgba(59,130,246,0.18), rgba(15,23,42,0.72));
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.28),
+    0 0 18px rgba(59,130,246,0.15);
+}
+
+.side-link:hover::before{
+  width:5px;
+}
+
+.side-link.active{
+  color:#ffffff;
+  border-color:rgba(56,189,248,0.28);
+  background:linear-gradient(90deg, rgba(59,130,246,0.22), rgba(15,23,42,0.78));
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.30),
+    0 0 22px rgba(59,130,246,0.16);
+}
+
+.side-link.active::before{
+  width:5px;
+}
+
+.side-link-primary{
+  border:none;
+  color:#ecfeff;
+  background:linear-gradient(135deg, rgba(34,197,94,0.26), rgba(56,189,248,0.18));
+}
+
+.side-link-primary:hover{
+  border:none;
+  background:linear-gradient(135deg, rgba(34,197,94,0.34), rgba(56,189,248,0.26));
+  box-shadow:
+    0 12px 30px rgba(0,0,0,0.30),
+    0 0 22px rgba(34,197,94,0.16);
+}
+
+.side-link-logout{
+  margin-top:18px;
+  border-color:rgba(249,115,22,0.18);
+  color:#fdba74;
+  background:linear-gradient(135deg, rgba(249,115,22,0.10), rgba(15,23,42,0.55));
+}
+
+.side-link-logout:hover{
+  color:#fff7ed;
+  border-color:rgba(249,115,22,0.30);
+  background:linear-gradient(135deg, rgba(249,115,22,0.18), rgba(15,23,42,0.75));
+}
+
+.side-icon{
+  width:28px;
+  text-align:center;
+  font-size:20px;
+  flex-shrink:0;
+}
+
+.sidebar-bottom{
+  padding-top:16px;
+  border-top:1px solid rgba(148,163,184,0.10);
+}
+
+.main-content{
+  flex:1;
+  min-width:0;
+  padding:22px 22px 28px;
+  box-sizing:border-box;
+}
+
+.grid{ display:grid; gap:24px; grid-template-columns: repeat(12, 1fr); }
+.card{ grid-column: span 3; min-height: 150px; }
+.card.w6{ grid-column: span 6; min-height: 380px; }
+.card.w12{ grid-column: span 12; }
 
 @media (max-width: 1200px){
-  .card { grid-column: span 6; }
-  .card.w4, .card.w6, .card.w8 { grid-column: span 12; }
+  .card{ grid-column: span 6; }
+  .card.w6{ grid-column: span 12; }
+}
+@media (max-width: 860px){
+  .page{ flex-direction:column; }
+  .sidebar{
+    width:100%;
+    min-height:auto;
+    border-right:none;
+    border-bottom:1px solid rgba(148,163,184,0.14);
+  }
+  .sidebar-nav{
+    flex-direction:row;
+    flex-wrap:wrap;
+  }
+  .side-link, .side-link-primary, .side-link-logout{
+    flex:1 1 220px;
+  }
+  .main-content{
+    padding:16px;
+  }
 }
 @media (max-width: 640px){
-  .card { grid-column: span 12; }
+  .card{ grid-column: span 12; }
 }
 
-.kpi { font-size:26px; font-weight:900; letter-spacing: -0.02em; }
-.kpi-big { font-size:30px; font-weight:900; letter-spacing: -0.03em; }
-.muted{opacity:.75}
-.small{font-size:12px}
-.kpi-sub{margin-top:6px;font-size:12px;opacity:.75}
-.kpi-green{color:#22c55e}
-.kpi-red{color:#ef4444}
-.kpi-yellow{color:#facc15}
-.kpi-orange{color:#fb923c}
-.kpi-blue{color:#38bdf8}
+.kpi{ font-size:34px; font-weight:900; letter-spacing:-0.02em; }
+.kpi2{ font-size:28px; font-weight:900; margin-top:8px; line-height:1.1; }
+.kpi3{ font-size:20px; font-weight:900; margin-top:6px; line-height:1.2; }
+.muted{ opacity:.75 }
+.small{ font-size:12px }
+.kpi-sub{ margin-top:6px; font-size:12px; opacity:.75 }
+.kpi-green{ color:#16a34a }
+.kpi-red{ color:#ef4444 }
 
-.table{width:100%;border-collapse:collapse}
+.table{ width:100%; border-collapse:collapse }
 .table th,.table td{
   padding:10px;
   border-bottom:1px solid rgba(148,163,184,0.12);
   text-align:left;
   vertical-align:middle;
-}
-.table th{
-  font-size:12px;
-  opacity:.82;
 }
 
 .pill{
@@ -55,53 +256,47 @@
   border-radius:999px;
   font-weight:900;
   white-space:nowrap;
-  font-size:12px;
 }
 .pill.ok{
   background:rgba(34,197,94,0.15);
-  color:#22c55e;
+  color:#16a34a;
   border:1px solid rgba(34,197,94,0.25);
-}
-.pill.warn{
-  background:rgba(250,204,21,0.14);
-  color:#facc15;
-  border:1px solid rgba(250,204,21,0.22);
-}
-.pill.alert{
-  background:rgba(251,146,60,0.15);
-  color:#fb923c;
-  border:1px solid rgba(251,146,60,0.24);
-}
-.pill.info{
-  background:rgba(56,189,248,0.15);
-  color:#38bdf8;
-  border:1px solid rgba(56,189,248,0.24);
 }
 .pill.gray{
   background:rgba(100,116,139,0.14);
   color:#cbd5e1;
   border:1px solid rgba(100,116,139,0.25);
 }
-.pill.danger{
-  background:rgba(239,68,68,0.15);
-  color:#ef4444;
-  border:1px solid rgba(239,68,68,0.24);
+.pill.info{
+  background:rgba(56,189,248,0.14);
+  color:#38bdf8;
+  border:1px solid rgba(56,189,248,0.25);
+}
+.pill.warn{
+  background:rgba(250,204,21,0.14);
+  color:#fde68a;
+  border:1px solid rgba(250,204,21,0.25);
+}
+.pill.orange{
+  background:rgba(249,115,22,0.14);
+  color:#fdba74;
+  border:1px solid rgba(249,115,22,0.25);
 }
 
 .panel.card{
   position:relative;
   overflow:hidden;
-  transform: translateZ(0);
+  transform:translateZ(0);
+  padding:22px;
 }
-
 .panel.card:hover{
-  transform: translateY(-2px);
-  box-shadow: 0 22px 70px rgba(0,0,0,0.55);
+  transform:translateY(-2px);
+  box-shadow:0 22px 70px rgba(0,0,0,0.55);
 }
 
 .card-head{
   display:flex;
-  align-items:flex-start;
+  align-items:center;
   justify-content:space-between;
   gap:10px;
 }
@@ -118,24 +313,33 @@
   display:grid;
   place-items:center;
   border:1px solid rgba(148,163,184,0.18);
-  background: rgba(15,23,42,0.55);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  background:rgba(15,23,42,0.55);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .ico svg{
   width:18px;
   height:18px;
   opacity:.95;
 }
-.chart-wrap{ height:300px; }
-.chart-wrap.tall{ height:340px; }
+.chart-wrap{ height:340px; }
 
 .premium-head{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:14px;
-  padding: 6px 2px;
+  padding:14px 18px;
+  margin-bottom:14px;
+  border-radius:22px;
+  border:1px solid rgba(148,163,184,0.10);
+  background:
+    linear-gradient(90deg, rgba(2,6,23,0.65), rgba(30,41,59,0.18)),
+    linear-gradient(180deg, rgba(15,23,42,0.72), rgba(15,23,42,0.48));
+  box-shadow:
+    0 14px 34px rgba(0,0,0,0.24),
+    inset 0 1px 0 rgba(255,255,255,0.04);
 }
+
 .brand-row{
   display:flex;
   align-items:center;
@@ -145,44 +349,37 @@
   width:14px;
   height:14px;
   border-radius:999px;
-  background: radial-gradient(circle at 30% 30%, rgba(34,197,94,1), rgba(56,189,248,.85));
-  box-shadow: 0 0 0 4px rgba(34,197,94,0.08), 0 14px 30px rgba(0,0,0,0.35);
-  border: 1px solid rgba(148,163,184,0.22);
+  background:radial-gradient(circle at 30% 30%, rgba(34,197,94,1), rgba(56,189,248,.85));
+  box-shadow:0 0 0 4px rgba(34,197,94,0.08), 0 14px 30px rgba(0,0,0,0.35);
+  border:1px solid rgba(148,163,184,0.22);
 }
 .head-sub{
   margin:6px 0 0 24px;
   font-size:12px;
   opacity:.70;
 }
-.head-actions{
-  display:flex;
-  gap:10px;
-  align-items:center;
-  flex-wrap:wrap;
-}
+
 .pbtn{
   display:inline-flex;
   align-items:center;
   gap:10px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  border: 1px solid rgba(148,163,184,0.18);
-  background: rgba(15,23,42,0.50);
+  padding:10px 14px;
+  border-radius:999px;
+  border:1px solid rgba(148,163,184,0.18);
+  background:rgba(15,23,42,0.50);
   color:#e2e8f0;
   font-weight:900;
   text-decoration:none;
   cursor:pointer;
-  transition: transform .08s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.06);
+  transition:transform .08s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
 }
 .pbtn:hover{
-  transform: translateY(-1px);
-  border-color: rgba(34,197,94,0.28);
-  background: rgba(15,23,42,0.62);
-  box-shadow: 0 18px 55px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+  transform:translateY(-1px);
+  border-color:rgba(34,197,94,0.28);
+  background:rgba(15,23,42,0.62);
+  box-shadow:0 18px 55px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
 }
-.pbtn:active{ transform: translateY(0px); }
-.pbtn-ghost{ background: rgba(15,23,42,0.50); }
 .picon{
   width:30px;
   height:30px;
@@ -190,7 +387,7 @@
   display:grid;
   place-items:center;
   border:1px solid rgba(148,163,184,0.18);
-  background: rgba(2,6,23,0.25);
+  background:rgba(2,6,23,0.25);
 }
 .picon svg{
   width:16px;
@@ -198,45 +395,11 @@
   opacity:.95;
 }
 
-.kpi-row{
-  display:flex;
-  align-items:flex-end;
-  justify-content:space-between;
-  gap:12px;
-  margin-top:8px;
-}
-.kpi-meta{
-  text-align:right;
-  min-width:fit-content;
-}
-
-.section-note{
-  margin-top:6px;
-  font-size:12px;
-  opacity:.72;
-}
-
-.legend-inline{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-  align-items:center;
-}
-
-.badge-line{
-  display:flex;
-  flex-wrap:wrap;
-  gap:8px;
-  align-items:center;
-  margin-top:8px;
-}
-
-/* MODAL */
 .modal-backdrop{
   position:fixed;
   inset:0;
   background:rgba(0,0,0,.55);
-  backdrop-filter: blur(6px);
+  backdrop-filter:blur(6px);
   display:none;
   align-items:center;
   justify-content:center;
@@ -248,8 +411,8 @@
   width:min(520px, 100%);
   border-radius:18px;
   border:1px solid rgba(148,163,184,0.18);
-  background: rgba(2,6,23,0.92);
-  box-shadow: 0 30px 80px rgba(0,0,0,0.65);
+  background:rgba(2,6,23,0.92);
+  box-shadow:0 30px 80px rgba(0,0,0,0.65);
   overflow:hidden;
 }
 .modal-head{
@@ -263,7 +426,7 @@
 .modal-body{ padding:16px 18px; }
 .week-grid{
   display:grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns:repeat(5, 1fr);
   gap:10px;
   margin-top:12px;
 }
@@ -271,16 +434,16 @@
   padding:12px 10px;
   border-radius:14px;
   border:1px solid rgba(148,163,184,0.18);
-  background: rgba(15,23,42,0.55);
+  background:rgba(15,23,42,0.55);
   color:#e2e8f0;
   font-weight:900;
   cursor:pointer;
-  transition: transform .08s ease, border-color .12s ease, background .12s ease;
+  transition:transform .08s ease, border-color .12s ease, background .12s ease;
 }
 .week-btn:hover{
-  transform: translateY(-1px);
-  border-color: rgba(34,197,94,0.35);
-  background: rgba(34,197,94,0.10);
+  transform:translateY(-1px);
+  border-color:rgba(34,197,94,0.35);
+  background:rgba(34,197,94,0.10);
 }
 .modal-foot{
   padding:14px 18px;
@@ -299,581 +462,693 @@
   padding:6px 8px;
   border-radius:10px;
 }
-.icon-btn:hover{ background: rgba(148,163,184,0.12); }
+.icon-btn:hover{ background:rgba(148,163,184,0.12); }
+
+.sum-box{
+  border:1px solid rgba(148,163,184,.12);
+  border-radius:18px;
+  padding:18px;
+  background: rgba(2,6,23,.22);
+  min-width:0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.sum-title{
+  font-size:12px;
+  opacity:.72;
+  margin-bottom:6px;
+}
+
+.week-highlight-grid{
+  display:grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap:16px;
+}
+
+@media (max-width: 1100px){
+  .week-highlight-grid{
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px){
+  .week-highlight-grid{
+    grid-template-columns: 1fr;
+  }
+}
+
+.week-highlight-grid{
+  display:grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap:14px;
+  margin-top: 4px;
+}
+
+.sum-box{
+  border:1px solid rgba(148,163,184,.12);
+  border-radius:16px;
+  padding:14px;
+  background: rgba(2,6,23,.22);
+  min-width:0;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
+}
+
+.sum-title{
+  font-size:12px;
+  opacity:.72;
+  margin-bottom:6px;
+}
+
+@media (max-width: 1100px){
+  .week-highlight-grid{
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px){
+  .week-highlight-grid{
+    grid-template-columns: 1fr;
+  }
+}
 </style>
 </head>
 
 <body>
 <div class="page">
 
-  <!-- HEADER -->
-  <div class="page-head premium-head">
-    <div class="head-left">
-      <div class="brand-row">
-        <div class="brand-dot" aria-hidden="true"></div>
-        <h1>IRONWAY ADMINISTRATIVO</h1>
+  <div class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-logo-wrap">
+        <div class="sidebar-logo-dot"></div>
+        <div>
+          <div class="sidebar-logo">IRONWAY</div>
+          <div class="sidebar-logo-sub">Painel administrativo</div>
+        </div>
       </div>
-      <p class="muted head-sub">Financial control, weekly closings and monthly panorama.</p>
+
+      <div class="sidebar-nav">
+        <button class="side-link side-link-primary" type="button" id="btnOpenWeekModalSidebar">
+          <span class="side-icon">📊</span>
+          <span>Fechar Semana</span>
+        </button>
+
+        <a href="{{ url_for('admin_history') }}" class="side-link {% if request.endpoint == 'admin_history' %}active{% endif %}">
+          <span class="side-icon">📅</span>
+          <span>Histórico</span>
+        </a>
+
+        <a href="{{ url_for('monthly_pdf', year=year, month=month) }}" class="side-link {% if request.endpoint == 'monthly_pdf' %}active{% endif %}">
+          <span class="side-icon">📄</span>
+          <span>PDF Mensal</span>
+        </a>
+
+        <a href="{{ url_for('admin_fixos', year=year, month=month) }}" class="side-link {% if request.endpoint == 'admin_fixos' %}active{% endif %}">
+          <span class="side-icon">💰</span>
+          <span>Fixos / Config</span>
+        </a>
+
+        <a href="{{ url_for('admin_motoristas') }}" class="side-link {% if request.endpoint == 'admin_motoristas' %}active{% endif %}">
+          <span class="side-icon">👨‍✈️</span>
+          <span>Motoristas</span>
+        </a>
+
+        <a href="{{ url_for('admin_dispatchers') }}" class="side-link {% if request.endpoint == 'admin_dispatchers' %}active{% endif %}">
+          <span class="side-icon">🧑‍💼</span>
+          <span>Dispatchers</span>
+        </a>
+
+        <a href="{{ url_for('admin_veiculos') }}" class="side-link {% if request.endpoint == 'admin_veiculos' %}active{% endif %}">
+          <span class="side-icon">🚚</span>
+          <span>Veículos / Frota</span>
+        </a>
+      </div>
     </div>
 
-    <div class="head-actions">
-      <button class="pbtn pbtn-ghost" type="button" id="btnOpenWeekModal">
-        <span class="picon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14"/><path d="M5 12h14"/>
-          </svg>
-        </span>
-        Close Week
-      </button>
-
-      <a class="pbtn pbtn-ghost" href="{{ url_for('admin_history') }}">
-        <span class="picon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 3v18h18"/>
-            <path d="M7 15v2"/><path d="M11 11v6"/><path d="M15 7v10"/><path d="M19 5v12"/>
-          </svg>
-        </span>
-        History
-      </a>
-
-      <a class="pbtn pbtn-ghost" href="{{ url_for('monthly_pdf', year=year, month=month) }}" target="_blank">
-        <span class="picon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <path d="M14 2v6h6"/><path d="M8 13h8"/><path d="M8 17h6"/>
-          </svg>
-        </span>
-        Month PDF
-      </a>
-
-      <a class="pbtn pbtn-ghost" href="{{ url_for('admin_fixos', year=year, month=month) }}">
-        <span class="picon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7h18"/><path d="M8 2v3"/><path d="M16 2v3"/>
-            <path d="M5 5h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/>
-          </svg>
-        </span>
-        Fixed Costs / Finance Config
-      </a>
-
-      <a class="pbtn pbtn-ghost" href="{{ url_for('logout') }}">
-        <span class="picon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M10 17l5-5-5-5"/><path d="M15 12H3"/><path d="M21 3v18"/>
-          </svg>
-        </span>
-        Logout
+    <div class="sidebar-bottom">
+      <a href="{{ url_for('logout') }}" class="side-link side-link-logout">
+        <span class="side-icon">🚪</span>
+        <span>Sair</span>
       </a>
     </div>
   </div>
 
-  <!-- FILTERS -->
-  <div class="panel" style="margin-bottom:14px;">
-    <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-      <div>
-        <div class="muted small">Year</div>
-        <input class="input" name="year" value="{{ year }}" style="width:110px;">
-      </div>
-      <div>
-        <div class="muted small">Month</div>
-        <input class="input" name="month" value="{{ month }}" style="width:90px;">
-      </div>
-      <div>
-        <div class="muted small">Week X across months</div>
-        <input class="input" name="week_x" value="{{ week_x }}" style="width:160px;">
-      </div>
+  <div class="main-content">
 
-      <button class="pbtn pbtn-ghost" type="submit">
-        <span class="picon" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 21H3"/><path d="M7 17V9"/><path d="M12 17V5"/><path d="M17 17v-7"/>
-          </svg>
-        </span>
-        Apply
-      </button>
+    <div class="page-head premium-head">
+      <div class="head-left">
+        <div class="brand-row">
+          <div class="brand-dot" aria-hidden="true"></div>
+          <h1>IRONWAY ADMINISTRATIVO</h1>
+        </div>
+        <p class="muted head-sub">Controle financeiro, fechamento semanal e panorama mensal.</p>
+      </div>
+    </div>
 
-      <div style="flex:1"></div>
+    <div class="panel" style="margin-bottom:14px;">
+      <form method="get" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+        <div>
+          <div class="muted small">Ano</div>
+          <input class="input" name="year" value="{{ year }}" style="width:110px;">
+        </div>
+        <div>
+          <div class="muted small">Mês</div>
+          <input class="input" name="month" value="{{ month }}" style="width:90px;">
+        </div>
+        <div>
+          <div class="muted small">Semana X entre meses</div>
+          <input class="input" name="week_x" value="{{ week_x }}" style="width:160px;">
+        </div>
 
-      <div class="legend-inline">
+        <button class="pbtn" type="submit">
+          <span class="picon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 21H3"/><path d="M7 17V9"/><path d="M12 17V5"/><path d="M17 17v-7"/>
+            </svg>
+          </span>
+          Aplicar
+        </button>
+
+        <div style="flex:1"></div>
+
         <span class="pill info">Driver {{ "%.2f"|format(driver_percent or 0) }}%</span>
         <span class="pill info">Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%</span>
-        <span class="pill {% if avg_fuel_price_month is not none and avg_fuel_price_month <= fuel_target_price %}ok{% elif avg_fuel_price_month is not none and avg_fuel_price_month <= (fuel_target_price * 1.10) %}warn{% elif avg_fuel_price_month is not none %}alert{% else %}gray{% endif %}">
-          Fuel Target ${{ "%.2f"|format(fuel_target_price or 0) }}
-        </span>
-      </div>
-    </form>
-  </div>
-
-  <div class="grid">
-
-    <!-- ROW 1 -->
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v20"/>
-              <path d="M17 6.5c0-2-2.2-3.5-5-3.5s-5 1.5-5 3.5 2.2 3.5 5 3.5 5 1.5 5 3.5-2.2 3.5-5 3.5-5-1.5-5-3.5"/>
-            </svg>
-          </div>
-          <div class="muted small">Revenue</div>
-        </div>
-        <span class="pill info">Month</span>
-      </div>
-      <div class="kpi-big">${{ "%.2f"|format(monthly.revenue or 0) }}</div>
-      <div class="kpi-sub">Gross revenue</div>
+        <span class="pill gray">Meta combustível ${{ "%.2f"|format(fuel_target_price or 0) }}</span>
+      </form>
     </div>
 
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 3h10v18l-2-1-2 1-2-1-2 1-2-1-2 1V3z"/>
-              <path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h6"/>
-            </svg>
+                <div class="panel card w12">
+        <div class="card-head" style="margin-bottom:14px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 2v4"/>
+                <path d="M16 2v4"/>
+                <rect x="3" y="6" width="18" height="15" rx="2"/>
+                <path d="M3 10h18"/>
+              </svg>
+            </div>
+            <div>
+              <h3 style="margin:0;">Aplicação da Semana</h3>
+              <div class="muted small">Resumo da última semana lançada neste mês</div>
+            </div>
           </div>
-          <div class="muted small">Expenses</div>
-        </div>
-        <span class="pill gray">Month</span>
-      </div>
-      <div class="kpi-big">${{ "%.2f"|format(monthly.expenses or 0) }}</div>
-      <div class="kpi-sub">Fuel + extra + cargo + % + fixed</div>
-    </div>
 
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/>
-            </svg>
-          </div>
-          <div class="muted small">Net Profit</div>
+          {% if current_week %}
+            <a class="pbtn" href="{{ url_for('weekly_edit', year=year, month=month, week_no=current_week.week_no) }}">
+              <span class="picon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                </svg>
+              </span>
+              Abrir semana
+            </a>
+          {% endif %}
         </div>
-        {% set mnet = (monthly.net or 0) %}
-        <span class="pill {% if mnet >= 0 %}ok{% else %}danger{% endif %}">
-          {% if mnet >= 0 %}Positive{% else %}Negative{% endif %}
-        </span>
-      </div>
-      <div class="kpi-big {% if mnet >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
-        ${{ "%.2f"|format(mnet) }}
-      </div>
-      <div class="kpi-sub">Monthly result</div>
-    </div>
 
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12h18"/>
-              <path d="M8 7l-5 5 5 5"/>
-              <path d="M16 7l5 5-5 5"/>
-            </svg>
+        {% if current_week %}
+          <div class="week-highlight-grid">
+            <div class="sum-box">
+              <div class="sum-title">Semana</div>
+              <div class="kpi2">{{ current_week.label }}</div>
+              <div class="muted small">{{ current_week.period }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Motorista</div>
+              <div class="kpi3">{{ current_week.motorista_nome or '--' }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Dispatcher</div>
+              <div class="kpi3">{{ current_week.dispatcher_nome or '--' }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Veículo / Frota</div>
+              <div class="kpi3">{{ current_week.veiculo_nome or '--' }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Revenue</div>
+              <div class="kpi2">${{ "%.2f"|format(current_week.calc.revenue or 0) }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Despesas</div>
+              <div class="kpi2">${{ "%.2f"|format(current_week.calc.total_expenses or 0) }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Net</div>
+              <div class="kpi2 {% if (current_week.calc.net or 0) >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
+                ${{ "%.2f"|format(current_week.calc.net or 0) }}
+              </div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Driver</div>
+              <div class="kpi3">${{ "%.2f"|format(current_week.calc.driver or 0) }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Dispatcher %</div>
+              <div class="kpi3">${{ "%.2f"|format(current_week.calc.dispatcher or 0) }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Fuel</div>
+              <div class="kpi3">${{ "%.2f"|format(current_week.calc.fuel or 0) }}</div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Preço médio</div>
+              <div class="kpi3">
+                {% if current_week.calc.avg_fuel_price is not none %}
+                  ${{ "%.2f"|format(current_week.calc.avg_fuel_price) }}
+                {% else %}
+                  --
+                {% endif %}
+              </div>
+            </div>
+
+            <div class="sum-box">
+              <div class="sum-title">Resultado %</div>
+              <div class="kpi3">{{ "%.2f"|format(current_week.calc.result_percent or 0) }}%</div>
+            </div>
           </div>
-          <div class="muted small">$ / Mile</div>
-        </div>
-        {% if dollars_per_mile_month is not none %}
-          <span class="pill info">Month Avg</span>
+
+          <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:14px;">
+            {% if current_week.payment_status == 'pago' %}
+              <span class="pill ok">PAGO</span>
+            {% else %}
+              <span class="pill warn">PENDENTE</span>
+            {% endif %}
+
+            {% if (current_week.calc.net or 0) >= 0 %}
+              <span class="pill ok">Semana positiva</span>
+            {% else %}
+              <span class="pill orange">Semana negativa</span>
+            {% endif %}
+
+            {% if current_week.calc.avg_fuel_price is not none %}
+              <span class="pill info">Preço médio ${{ "%.2f"|format(current_week.calc.avg_fuel_price) }}</span>
+            {% else %}
+              <span class="pill gray">Sem média de combustível</span>
+            {% endif %}
+
+            {% if current_week.calc.dollars_per_mile is not none %}
+              <span class="pill info">$ / Milha: ${{ "%.2f"|format(current_week.calc.dollars_per_mile) }}</span>
+            {% else %}
+              <span class="pill gray">Sem $ / milha</span>
+            {% endif %}
+          </div>
         {% else %}
-          <span class="pill gray">No data</span>
+          <div class="muted">Nenhuma semana lançada ainda neste mês.</div>
         {% endif %}
       </div>
-      <div class="kpi-big kpi-blue">
-        {% if dollars_per_mile_month is not none %}
-          ${{ "%.2f"|format(dollars_per_mile_month) }}
-        {% else %}
-          --
-        {% endif %}
-      </div>
-      <div class="kpi-sub">Revenue divided by miles</div>
-    </div>
 
-    <!-- ROW 2 -->
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 21V7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/>
-              <path d="M3 11h11"/>
-              <path d="M14 8h2l2 2v11a2 2 0 0 0 2-2v-7l-2-2"/>
-              <path d="M7 15h3"/>
-            </svg>
+    <div class="grid">
+
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2v20"/>
+                <path d="M17 6.5c0-2-2.2-3.5-5-3.5s-5 1.5-5 3.5 2.2 3.5 5 3.5 5 1.5 5 3.5-2.2 3.5-5 3.5-5-1.5-5-3.5"/>
+              </svg>
+            </div>
+            <div class="muted small">Receita</div>
           </div>
-          <div class="muted small">Fuel Cost</div>
+          <span class="pill info">Mês</span>
         </div>
-        <span class="pill gray">Month</span>
+        <div class="kpi">${{ "%.2f"|format(monthly.revenue or 0) }}</div>
+        <div class="kpi-sub">Receita bruta</div>
       </div>
-      <div class="kpi">${{ "%.2f"|format(fuel_month or 0) }}</div>
-      <div class="kpi-sub">Total fuel spent in month</div>
-    </div>
 
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 2v20"/>
-              <path d="M19 5H9.5a3.5 3.5 0 0 0 0 7H15a3.5 3.5 0 0 1 0 7H5"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M7 3h10v18l-2-1-2 1-2-1-2 1-2-1-2 1V3z"/>
+                <path d="M9 7h6"/><path d="M9 11h6"/><path d="M9 15h6"/>
+              </svg>
+            </div>
+            <div class="muted small">Despesas</div>
           </div>
-          <div class="muted small">Avg Fuel Price</div>
+          <span class="pill gray">Mês</span>
         </div>
-
-        {% if avg_fuel_price_month is none %}
-          <span class="pill gray">No data</span>
-        {% elif avg_fuel_price_month <= fuel_target_price %}
-          <span class="pill ok">Inside target</span>
-        {% elif avg_fuel_price_month <= (fuel_target_price * 1.10) %}
-          <span class="pill warn">Attention</span>
-        {% else %}
-          <span class="pill alert">Above target</span>
-        {% endif %}
+        <div class="kpi">${{ "%.2f"|format(monthly.expenses or 0) }}</div>
+        <div class="kpi-sub">Combustível + extra + cargo + % + fixos</div>
       </div>
-      <div class="kpi {% if avg_fuel_price_month is not none and avg_fuel_price_month <= fuel_target_price %}kpi-green{% elif avg_fuel_price_month is not none and avg_fuel_price_month <= (fuel_target_price * 1.10) %}kpi-yellow{% elif avg_fuel_price_month is not none %}kpi-orange{% endif %}">
-        {% if avg_fuel_price_month is not none %}
-          ${{ "%.2f"|format(avg_fuel_price_month) }}
-        {% else %}
-          --
-        {% endif %}
-      </div>
-      <div class="kpi-sub">Average paid per gallon</div>
-    </div>
 
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 20V10"/>
-              <path d="M8 14l4-4 4 4"/>
-              <path d="M4 4h16"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 17l6-6 4 4 7-7"/><path d="M14 8h6v6"/>
+              </svg>
+            </div>
+            <div class="muted small">Lucro Líquido</div>
           </div>
-          <div class="muted small">Fuel Target</div>
+          <span class="pill {{ 'ok' if (monthly.net or 0) >= 0 else 'orange' }}">{{ 'Positivo' if (monthly.net or 0) >= 0 else 'Negativo' }}</span>
         </div>
-        <span class="pill info">Admin config</span>
+        <div class="kpi {% if (monthly.net or 0) >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
+          ${{ "%.2f"|format(monthly.net or 0) }}
+        </div>
+        <div class="kpi-sub">Resultado mensal</div>
       </div>
-      <div class="kpi kpi-blue">${{ "%.2f"|format(fuel_target_price or 0) }}</div>
-      <div class="kpi-sub">Expected max price per gallon</div>
-    </div>
 
-    <div class="panel card">
-      <div class="card-head">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 20h16"/>
-              <path d="M7 16l4-4 3 3 5-7"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 12h8"/><path d="M12 8l4 4-4 4"/><path d="M12 8l-4 4 4 4"/>
+              </svg>
+            </div>
+            <div class="muted small">$ / Milha</div>
           </div>
-          <div class="muted small">Result %</div>
+          <span class="pill gray">{% if dollars_per_mile_month is not none %}Mês{% else %}Sem dados{% endif %}</span>
         </div>
-        {% if result_percent_month >= 20 %}
-          <span class="pill ok">Strong</span>
-        {% elif result_percent_month >= 10 %}
-          <span class="pill warn">Good</span>
-        {% elif result_percent_month >= 0 %}
-          <span class="pill alert">Low</span>
-        {% else %}
-          <span class="pill danger">Loss</span>
-        {% endif %}
+        <div class="kpi">
+          {% if dollars_per_mile_month is not none %}
+            ${{ "%.2f"|format(dollars_per_mile_month) }}
+          {% else %}
+            --
+          {% endif %}
+        </div>
+        <div class="kpi-sub">Receita dividida por milhas</div>
       </div>
-      <div class="kpi {% if result_percent_month >= 20 %}kpi-green{% elif result_percent_month >= 10 %}kpi-yellow{% elif result_percent_month >= 0 %}kpi-orange{% else %}kpi-red{% endif %}">
-        {{ "%.2f"|format(result_percent_month or 0) }}%
-      </div>
-      <div class="kpi-sub">Net divided by revenue</div>
-    </div>
 
-    <!-- ROW 3 -->
-    <div class="panel card w6">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19V5"/><path d="M8 19v-8"/><path d="M12 19v-4"/><path d="M16 19v-10"/><path d="M20 19V9"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21V7a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v14"/>
+                <path d="M3 11h11"/>
+                <path d="M14 8h2l2 2v11a2 2 0 0 0 2-2v-7l-2-2"/>
+                <path d="M7 15h3"/>
+              </svg>
+            </div>
+            <div class="muted small">Custo de Combustível</div>
           </div>
-          <h3 style="margin:0;">Revenue x Expenses by Week</h3>
+          <span class="pill gray">Mês</span>
         </div>
+        <div class="kpi">${{ "%.2f"|format(fuel_month or 0) }}</div>
+        <div class="kpi-sub">Total gasto com combustível no mês</div>
       </div>
-      <div class="chart-wrap"><canvas id="chartWeeks"></canvas></div>
-    </div>
 
-    <div class="panel card w6">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 18h18"/><path d="M7 14V8"/><path d="M12 14V5"/><path d="M17 14v-3"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1v22"/><path d="M17 5H9a4 4 0 0 0 0 8h6a4 4 0 0 1 0 8H7"/>
+              </svg>
+            </div>
+            <div class="muted small">Preço Médio do Galão</div>
           </div>
-          <h3 style="margin:0;">Average Fuel Price x Target</h3>
+          <span class="pill gray">{% if avg_fuel_price_month is not none %}Mês{% else %}Sem dados{% endif %}</span>
         </div>
+        <div class="kpi">
+          {% if avg_fuel_price_month is not none %}
+            ${{ "%.2f"|format(avg_fuel_price_month) }}
+          {% else %}
+            --
+          {% endif %}
+        </div>
+        <div class="kpi-sub">Média paga por galão</div>
       </div>
-      <div class="chart-wrap"><canvas id="chartFuelAvg"></canvas></div>
-    </div>
 
-    <!-- ROW 4 -->
-    <div class="panel card w6">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12h18"/>
-              <path d="M9 6h6"/>
-              <path d="M9 18h6"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 19V5"/><path d="M5 12l7-7 7 7"/>
+              </svg>
+            </div>
+            <div class="muted small">Meta do Galão</div>
           </div>
-          <h3 style="margin:0;">$ / Mile by Week</h3>
+          <span class="pill info">Admin config</span>
         </div>
+        <div class="kpi">${{ "%.2f"|format(fuel_target_price or 0) }}</div>
+        <div class="kpi-sub">Preço máximo esperado por galão</div>
       </div>
-      <div class="chart-wrap"><canvas id="chartDpm"></canvas></div>
-    </div>
 
-    <div class="panel card w6">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19V5"/><path d="M10 19V9"/><path d="M16 19V7"/>
-            </svg>
+      <div class="panel card">
+        <div class="card-head">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 17l4-4 4 4 8-8"/><path d="M21 10v7h-7"/>
+              </svg>
+            </div>
+            <div class="muted small">Resultado %</div>
           </div>
-          <h3 style="margin:0;">Fuel Cost by Week</h3>
+          <span class="pill orange">{% if result_percent_month >= 15 %}Alto{% else %}Baixo{% endif %}</span>
         </div>
+        <div class="kpi" style="color:#fb923c;">{{ "%.2f"|format(result_percent_month or 0) }}%</div>
+        <div class="kpi-sub">Líquido dividido pela receita</div>
       </div>
-      <div class="chart-wrap"><canvas id="chartFuelCost"></canvas></div>
-    </div>
 
-    <!-- ROW 5 -->
-    <div class="panel card w8">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12h4l2-6 4 12 2-6h6"/>
-            </svg>
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19V5"/><path d="M8 19v-8"/><path d="M12 19v-4"/><path d="M16 19v-10"/><path d="M20 19V9"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Receita x Despesas por Semana</h3>
           </div>
-          <h3 style="margin:0;">Result by Week ($ + %)</h3>
         </div>
+        <div class="chart-wrap"><canvas id="chartWeeks"></canvas></div>
       </div>
-      <div class="chart-wrap tall"><canvas id="chartResult"></canvas></div>
-    </div>
 
-    <div class="panel card w4">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 12A9 9 0 1 1 12 3"/>
-              <path d="M21 3v9h-9"/>
-            </svg>
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h4l2-6 4 12 2-6h6"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Preço Médio do Combustível x Meta</h3>
           </div>
-          <h3 style="margin:0;">Expense Summary</h3>
         </div>
+        <div class="chart-wrap"><canvas id="chartFuelAvg"></canvas></div>
       </div>
-      <div class="chart-wrap tall"><canvas id="chartPie"></canvas></div>
-    </div>
 
-    <!-- ROW 6 -->
-    <div class="panel card w6">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 19V5"/><path d="M8 19v-8"/><path d="M12 19v-4"/><path d="M16 19v-10"/><path d="M20 19V9"/>
-            </svg>
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M8 12h8"/><path d="M12 8l4 4-4 4"/><path d="M12 8l-4 4 4 4"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">$ / Milha por Semana</h3>
           </div>
-          <h3 style="margin:0;">Week {{ week_x }} Across Months</h3>
         </div>
+        <div class="chart-wrap"><canvas id="chartDpm"></canvas></div>
       </div>
-      <div class="chart-wrap"><canvas id="chartAcross"></canvas></div>
-    </div>
 
-    <div class="panel card w6">
-      <div class="card-head" style="margin-bottom:8px;">
-        <div class="card-title">
-          <div class="ico">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 12h4l2-6 4 12 2-6h6"/>
-            </svg>
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19V5"/><path d="M8 19v-8"/><path d="M12 19v-4"/><path d="M16 19v-10"/><path d="M20 19V9"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Custo de Combustível por Semana</h3>
           </div>
-          <h3 style="margin:0;">Monthly Net • Last 12 Months</h3>
         </div>
-      </div>
-      <div class="chart-wrap"><canvas id="chartMonthNet"></canvas></div>
-    </div>
-
-    <!-- TABLE -->
-    <div class="panel card w12">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-        <h3 style="margin:0;">Weekly Closings</h3>
-        <div class="badge-line">
-          <span class="pill info">Driver {{ "%.2f"|format(driver_percent or 0) }}%</span>
-          <span class="pill info">Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%</span>
-          <span class="pill gray">Target ${{ "%.2f"|format(fuel_target_price or 0) }}</span>
-        </div>
+        <div class="chart-wrap"><canvas id="chartFuelCost"></canvas></div>
       </div>
 
-      {% if weeks and weeks|length %}
-        <table class="table" style="margin-top:12px;">
-          <thead>
-            <tr>
-              <th>Week</th>
-              <th>Period</th>
-              <th>Revenue</th>
-              <th>Expenses</th>
-              <th>Net</th>
-              <th>$ / Mile</th>
-              <th>Avg Fuel</th>
-              <th>Result %</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h4l2-6 4 12 2-6h6"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Resultado por Semana ($ + %)</h3>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartResult"></canvas></div>
+      </div>
 
-          <tbody>
-            {% for w in weeks %}
-              {% set net = (w.calc.net or 0) %}
-              {% set fuel_avg = w.calc.avg_fuel_price %}
-              {% set result_pct = (w.calc.result_percent or 0) %}
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2a10 10 0 1 0 10 10"/><path d="M12 2v10h10"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Resumo das Despesas</h3>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartPie"></canvas></div>
+      </div>
+
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 19V5"/><path d="M8 19v-8"/><path d="M12 19v-4"/><path d="M16 19v-10"/><path d="M20 19V9"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Semana {{ week_x }} entre meses</h3>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartAcross"></canvas></div>
+      </div>
+
+      <div class="panel card w6">
+        <div class="card-head" style="margin-bottom:8px;">
+          <div class="card-title">
+            <div class="ico">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12h4l2-6 4 12 2-6h6"/>
+              </svg>
+            </div>
+            <h3 style="margin:0;">Lucro mensal - últimos 12 meses</h3>
+          </div>
+        </div>
+        <div class="chart-wrap"><canvas id="chartMonthNet"></canvas></div>
+      </div>
+
+      <div class="panel card w12">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <h3 style="margin:0;">Fechamentos Semanais</h3>
+          <div class="muted small">Clique em “Fechar Semana” no menu lateral para lançar.</div>
+        </div>
+
+        {% if weeks and weeks|length %}
+          <table class="table" style="margin-top:12px;">
+            <thead>
               <tr>
-                <td><b>{{ w.label }}</b></td>
-                <td class="muted">{{ w.period }}</td>
-                <td>${{ "%.2f"|format(w.calc.revenue or 0) }}</td>
-                <td>${{ "%.2f"|format(w.calc.total_expenses or 0) }}</td>
-                <td style="font-weight:900;color:{{ '#22c55e' if net >= 0 else '#ef4444' }};">
-                  ${{ "%.2f"|format(net) }}
-                </td>
-                <td>
-                  {% if w.calc.dollars_per_mile is not none %}
-                    <span class="pill info">${{ "%.2f"|format(w.calc.dollars_per_mile) }}</span>
-                  {% else %}
-                    <span class="pill gray">--</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if fuel_avg is none %}
-                    <span class="pill gray">--</span>
-                  {% elif fuel_avg <= fuel_target_price %}
-                    <span class="pill ok">${{ "%.2f"|format(fuel_avg) }}</span>
-                  {% elif fuel_avg <= (fuel_target_price * 1.10) %}
-                    <span class="pill warn">${{ "%.2f"|format(fuel_avg) }}</span>
-                  {% else %}
-                    <span class="pill alert">${{ "%.2f"|format(fuel_avg) }}</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if result_pct >= 20 %}
-                    <span class="pill ok">{{ "%.2f"|format(result_pct) }}%</span>
-                  {% elif result_pct >= 10 %}
-                    <span class="pill warn">{{ "%.2f"|format(result_pct) }}%</span>
-                  {% elif result_pct >= 0 %}
-                    <span class="pill alert">{{ "%.2f"|format(result_pct) }}%</span>
-                  {% else %}
-                    <span class="pill danger">{{ "%.2f"|format(result_pct) }}%</span>
-                  {% endif %}
-                </td>
-                <td>
-                  {% if w.payment_status == 'pago' %}
-                    <span class="pill ok">PAID</span>
-                  {% else %}
-                    <span class="pill warn">PENDING</span>
-                  {% endif %}
-                </td>
-                <td style="text-align:right; display:flex; gap:10px; justify-content:flex-end; align-items:center;">
-                  <a class="btn btn-outline" href="{{ url_for('weekly_pdf', year=year, month=month, week_no=w.week_no) }}">PDF</a>
-                  <a class="btn btn-outline" href="{{ url_for('weekly_edit', year=year, month=month, week_no=w.week_no) }}">Edit</a>
-                </td>
+                <th>Semana</th>
+                <th>Período</th>
+                <th>Receita</th>
+                <th>Despesas</th>
+                <th>Líquido</th>
+                <th>$ / Milha</th>
+                <th>Preço Médio</th>
+                <th>Resultado %</th>
+                <th>Status</th>
+                <th></th>
               </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% else %}
-        <div class="muted" style="margin-top:12px;">No weeks yet.</div>
-      {% endif %}
-    </div>
+            </thead>
 
+            <tbody>
+              {% for w in weeks %}
+                <tr>
+                  <td><b>{{ w.label }}</b></td>
+                  <td class="muted">{{ w.period }}</td>
+                  <td>${{ "%.2f"|format(w.calc.revenue or 0) }}</td>
+                  <td>${{ "%.2f"|format(w.calc.total_expenses or 0) }}</td>
+                  <td style="font-weight:900;color:{{ '#16a34a' if (w.calc.net or 0) >= 0 else '#ef4444' }};">
+                    ${{ "%.2f"|format(w.calc.net or 0) }}
+                  </td>
+                  <td>
+                    {% if w.calc.dollars_per_mile is not none %}
+                      <span class="pill info">${{ "%.2f"|format(w.calc.dollars_per_mile) }}</span>
+                    {% else %}
+                      <span class="muted">--</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if w.calc.avg_fuel_price is not none %}
+                      <span class="pill orange">${{ "%.2f"|format(w.calc.avg_fuel_price) }}</span>
+                    {% else %}
+                      <span class="muted">--</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    <span class="pill {{ 'ok' if (w.calc.result_percent or 0) >= 15 else 'warn' if (w.calc.result_percent or 0) >= 0 else 'orange' }}">
+                      {{ "%.2f"|format(w.calc.result_percent or 0) }}%
+                    </span>
+                  </td>
+                  <td>
+                    {% if w.payment_status == 'pago' %}
+                      <span class="pill ok">PAGO</span>
+                    {% else %}
+                      <span class="pill warn">PENDENTE</span>
+                    {% endif %}
+                  </td>
+                  <td style="text-align:right; display:flex; gap:10px; justify-content:flex-end; align-items:center;">
+                    <a class="btn btn-outline" href="{{ url_for('weekly_pdf', year=year, month=month, week_no=w.week_no) }}">PDF</a>
+                    <a class="btn btn-outline" href="{{ url_for('weekly_edit', year=year, month=month, week_no=w.week_no) }}">Editar</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% else %}
+          <div class="muted" style="margin-top:12px;">Nenhuma semana cadastrada ainda.</div>
+        {% endif %}
+      </div>
+
+    </div>
   </div>
 </div>
 
-<!-- MODAL CLOSE WEEK -->
 <div class="modal-backdrop" id="weekModal" aria-hidden="true">
   <div class="modal-box" role="dialog" aria-modal="true" aria-labelledby="weekModalTitle">
     <div class="modal-head">
       <div>
-        <div class="modal-title" id="weekModalTitle">Close Week</div>
-        <div class="muted small">Choose the week you want to enter.</div>
+        <div class="modal-title" id="weekModalTitle">Fechar Semana</div>
+        <div class="muted small">Escolha a semana que deseja lançar.</div>
       </div>
-      <button class="icon-btn" type="button" id="btnCloseWeekModal" aria-label="Close">✕</button>
+      <button class="icon-btn" type="button" id="btnCloseWeekModal" aria-label="Fechar">✕</button>
     </div>
 
     <div class="modal-body">
-      <div class="muted small">Current Year/Month: <b>{{ year }}</b> / <b>{{ month }}</b></div>
+      <div class="muted small">Ano/Mês atual: <b>{{ year }}</b> / <b>{{ month }}</b></div>
 
       <div class="week-grid">
-        <button class="week-btn" type="button" data-week="1">Week 1</button>
-        <button class="week-btn" type="button" data-week="2">Week 2</button>
-        <button class="week-btn" type="button" data-week="3">Week 3</button>
-        <button class="week-btn" type="button" data-week="4">Week 4</button>
-        <button class="week-btn" type="button" data-week="5">Week 5</button>
+        <button class="week-btn" type="button" data-week="1">Semana 1</button>
+        <button class="week-btn" type="button" data-week="2">Semana 2</button>
+        <button class="week-btn" type="button" data-week="3">Semana 3</button>
+        <button class="week-btn" type="button" data-week="4">Semana 4</button>
+        <button class="week-btn" type="button" data-week="5">Semana 5</button>
       </div>
     </div>
 
     <div class="modal-foot">
-      <button class="btn btn-outline" type="button" id="btnCancelWeekModal">Cancel</button>
+      <button class="btn btn-outline" type="button" id="btnCancelWeekModal">Cancelar</button>
     </div>
   </div>
 </div>
 
 <script>
-const chartGridColor = "rgba(148,163,184,0.10)";
 const chartTextColor = "#cbd5e1";
+const chartGridColor = "rgba(148,163,184,0.10)";
 
 const baseChartOptions = {
-  responsive: true,
-  maintainAspectRatio: false,
-  plugins: {
-    legend: {
-      labels: {
-        color: chartTextColor,
-        boxWidth: 14,
-        boxHeight: 14
-      }
-    },
-    tooltip: { enabled: true }
+  responsive:true,
+  maintainAspectRatio:false,
+  plugins:{
+    legend:{ labels:{ color: chartTextColor, boxWidth:14, boxHeight:14 } },
+    tooltip:{ enabled:true }
   },
-  scales: {
-    x: {
-      ticks: { color: chartTextColor },
-      grid: { display: false }
-    },
-    y: {
-      ticks: { color: chartTextColor },
-      grid: { color: chartGridColor }
-    }
+  scales:{
+    x:{ ticks:{ color: chartTextColor }, grid:{ display:false } },
+    y:{ ticks:{ color: chartTextColor }, grid:{ color: chartGridColor }, beginAtZero:true }
   }
 };
-
-const acrossLabels = {{ (chart_across_labels or []) | tojson }};
-const acrossRevenue = {{ (chart_across_revenue or []) | tojson }};
-const acrossExpenses = {{ (chart_across_expenses or []) | tojson }};
-const acrossNet = {{ (chart_across_net or []) | tojson }};
-
-new Chart(document.getElementById("chartAcross"), {
-  type: "bar",
-  data: {
-    labels: acrossLabels,
-    datasets: [
-      { label: "Revenue", data: acrossRevenue, borderRadius: 12, backgroundColor: "rgba(59,130,246,0.72)" },
-      { label: "Expenses", data: acrossExpenses, borderRadius: 12, backgroundColor: "rgba(244,63,94,0.72)" },
-      { label: "Net", data: acrossNet, borderRadius: 12, backgroundColor: "rgba(34,197,94,0.72)" }
-    ]
-  },
-  options: baseChartOptions
-});
 
 const wLabels = {{ (chart_weeks_labels or []) | tojson }};
 const wRevenue = {{ (chart_weeks_revenue or []) | tojson }};
@@ -883,56 +1158,78 @@ const wDpm = {{ (chart_weeks_dpm or []) | tojson }};
 const wAvgFuel = {{ (chart_weeks_avg_fuel or []) | tojson }};
 const wFuelTarget = {{ (chart_weeks_fuel_target or []) | tojson }};
 const wResultPct = {{ (chart_weeks_result_pct or []) | tojson }};
-const fuelMonthWeekly = {{ (chart_weeks_fuel or [0,0,0,0]) | tojson }};
+const fuelMonthWeekly = {{ ((chart_weeks_fuel if chart_weeks_fuel is defined else [0,0,0,0])) | tojson }};
 
-new Chart(document.getElementById("chartWeeks"), {
-  type: "bar",
-  data: {
-    labels: wLabels,
-    datasets: [
-      { label: "Revenue", data: wRevenue, borderRadius: 12, backgroundColor: "rgba(59,130,246,0.72)" },
-      { label: "Expenses", data: wExpenses, borderRadius: 12, backgroundColor: "rgba(244,63,94,0.72)" }
+new Chart(document.getElementById("chartWeeks"),{
+  type:"bar",
+  data:{
+    labels:wLabels,
+    datasets:[
+      { label:"Receita", data:wRevenue, borderRadius:12, backgroundColor:"rgba(59,130,246,0.65)" },
+      { label:"Despesas", data:wExpenses, borderRadius:12, backgroundColor:"rgba(244,63,94,0.65)" }
     ]
   },
   options: baseChartOptions
 });
 
-new Chart(document.getElementById("chartFuelAvg"), {
-  type: "bar",
-  data: {
-    labels: wLabels,
-    datasets: [
+new Chart(document.getElementById("chartFuelAvg"),{
+  type:"bar",
+  data:{
+    labels:wLabels,
+    datasets:[
       {
-        label: "Avg Fuel Price",
-        data: wAvgFuel,
-        borderRadius: 12,
-        backgroundColor: "rgba(250,204,21,0.72)"
+        label:"Preço médio",
+        data:wAvgFuel,
+        borderRadius:12,
+        backgroundColor:"rgba(234,179,8,0.78)",
+        borderColor:"rgba(234,179,8,1)",
+        borderWidth:1
       },
       {
-        label: "Target",
-        data: wFuelTarget,
-        type: "line",
-        tension: 0.18,
-        borderColor: "rgba(56,189,248,1)",
-        backgroundColor: "rgba(56,189,248,0.10)",
-        pointRadius: 3
+        label:"Meta",
+        data:wFuelTarget,
+        borderRadius:12,
+        backgroundColor:"rgba(56,189,248,0.78)",
+        borderColor:"rgba(56,189,248,1)",
+        borderWidth:1
       }
     ]
   },
-  options: baseChartOptions
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{
+        labels:{
+          color: chartTextColor,
+          boxWidth:14,
+          boxHeight:14
+        }
+      }
+    },
+    scales:{
+      x:{
+        ticks:{ color: chartTextColor },
+        grid:{ display:false }
+      },
+      y:{
+        beginAtZero:true,
+        ticks:{
+          color: chartTextColor,
+          callback: function(value){ return "$" + value; }
+        },
+        grid:{ color: chartGridColor }
+      }
+    }
+  }
 });
 
-new Chart(document.getElementById("chartDpm"), {
-  type: "bar",
-  data: {
-    labels: wLabels,
-    datasets: [
-      {
-        label: "$ / Mile",
-        data: wDpm,
-        borderRadius: 12,
-        backgroundColor: "rgba(56,189,248,0.72)"
-      }
+new Chart(document.getElementById("chartDpm"),{
+  type:"bar",
+  data:{
+    labels:wLabels,
+    datasets:[
+      { label:"$ / Milha", data:wDpm, borderRadius:12, backgroundColor:"rgba(56,189,248,0.72)" }
     ]
   },
   options: baseChartOptions
@@ -955,9 +1252,7 @@ new Chart(document.getElementById("chartFuelCost"), {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        labels: { color: chartTextColor }
-      }
+      legend: { labels: { color: chartTextColor } }
     },
     scales: {
       x: {
@@ -968,9 +1263,7 @@ new Chart(document.getElementById("chartFuelCost"), {
         beginAtZero: true,
         ticks: {
           color: chartTextColor,
-          callback: function(value) {
-            return "$" + value;
-          }
+          callback: function(value) { return "$" + value; }
         },
         grid: { color: chartGridColor }
       }
@@ -978,54 +1271,43 @@ new Chart(document.getElementById("chartFuelCost"), {
   }
 });
 
-new Chart(document.getElementById("chartResult"), {
-  type: "bar",
-  data: {
-    labels: wLabels,
-    datasets: [
+new Chart(document.getElementById("chartResult"),{
+  data:{
+    labels:wLabels,
+    datasets:[
       {
-        label: "Result $",
-        data: wNet,
-        borderRadius: 12,
-        backgroundColor: "rgba(34,197,94,0.72)",
-        yAxisID: "y"
+        type:"bar",
+        label:"Resultado $",
+        data:wNet,
+        borderRadius:12,
+        backgroundColor:"rgba(34,197,94,0.72)"
       },
       {
-        label: "Result %",
-        data: wResultPct,
-        type: "line",
-        tension: 0.22,
-        borderColor: "rgba(251,146,60,1)",
-        backgroundColor: "rgba(251,146,60,0.12)",
-        pointRadius: 3,
-        yAxisID: "y1"
+        type:"line",
+        label:"Resultado %",
+        data:wResultPct,
+        borderColor:"rgba(249,115,22,1)",
+        backgroundColor:"rgba(249,115,22,0.10)",
+        yAxisID:"y1",
+        tension:0.25
       }
     ]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        labels: { color: chartTextColor }
-      }
-    },
-    scales: {
-      x: {
-        ticks: { color: chartTextColor },
-        grid: { display: false }
-      },
-      y: {
-        ticks: { color: chartTextColor },
-        grid: { color: chartGridColor }
-      },
-      y1: {
-        position: "right",
-        ticks: {
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color: chartTextColor } } },
+    scales:{
+      x:{ ticks:{ color: chartTextColor }, grid:{ display:false } },
+      y:{ beginAtZero:true, ticks:{ color: chartTextColor }, grid:{ color: chartGridColor } },
+      y1:{
+        beginAtZero:true,
+        position:"right",
+        ticks:{
           color: chartTextColor,
-          callback: (value) => value + "%"
+          callback: function(value){ return value + "%"; }
         },
-        grid: { drawOnChartArea: false }
+        grid:{ drawOnChartArea:false }
       }
     }
   }
@@ -1034,37 +1316,45 @@ new Chart(document.getElementById("chartResult"), {
 const pieLabels = {{ (chart_pie_labels or []) | tojson }};
 const pieValues = {{ (chart_pie_values or []) | tojson }};
 
-new Chart(document.getElementById("chartPie"), {
-  type: "pie",
-  data: {
-    labels: pieLabels,
-    datasets: [
-      {
-        data: pieValues,
-        backgroundColor: [
-          "rgba(59,130,246,0.82)",
-          "rgba(249,115,22,0.82)",
-          "rgba(156,163,175,0.82)",
-          "rgba(250,204,21,0.82)",
-          "rgba(56,189,248,0.82)",
-          "rgba(34,197,94,0.82)",
-          "rgba(244,63,94,0.82)"
-        ],
-        borderColor: "rgba(15,23,42,0.85)",
-        borderWidth: 2
-      }
+new Chart(document.getElementById("chartPie"),{
+  type:"pie",
+  data:{
+    labels:pieLabels,
+    datasets:[{
+      data:pieValues,
+      backgroundColor:[
+        "rgba(59,130,246,0.8)",
+        "rgba(249,115,22,0.8)",
+        "rgba(34,197,94,0.8)",
+        "rgba(234,179,8,0.8)",
+        "rgba(168,85,247,0.8)",
+        "rgba(236,72,153,0.8)"
+      ]
+    }]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{ legend:{ labels:{ color: chartTextColor } } }
+  }
+});
+
+const acrossLabels = {{ (chart_across_labels or []) | tojson }};
+const acrossRevenue = {{ (chart_across_revenue or []) | tojson }};
+const acrossExpenses = {{ (chart_across_expenses or []) | tojson }};
+const acrossNet = {{ (chart_across_net or []) | tojson }};
+
+new Chart(document.getElementById("chartAcross"), {
+  type:"bar",
+  data:{
+    labels:acrossLabels,
+    datasets:[
+      { label:"Receita", data:acrossRevenue, borderRadius:12, backgroundColor:"rgba(59,130,246,0.65)" },
+      { label:"Despesas", data:acrossExpenses, borderRadius:12, backgroundColor:"rgba(244,63,94,0.65)" },
+      { label:"Líquido", data:acrossNet, borderRadius:12, backgroundColor:"rgba(34,197,94,0.65)" }
     ]
   },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        position: "bottom",
-        labels: { color: chartTextColor }
-      }
-    }
-  }
+  options: baseChartOptions
 });
 
 const monthLabels = {{ (chart_month_labels or []) | tojson }};
@@ -1076,7 +1366,7 @@ new Chart(document.getElementById("chartMonthNet"),{
     labels: monthLabels,
     datasets:[
       {
-        label:"Monthly Net",
+        label:"Lucro mensal",
         data: monthNet,
         tension: 0.25,
         fill: true,
@@ -1089,9 +1379,7 @@ new Chart(document.getElementById("chartMonthNet"),{
   options: {
     responsive:true,
     maintainAspectRatio:false,
-    plugins:{
-      legend:{ labels:{ color: chartTextColor } }
-    },
+    plugins:{ legend:{ labels:{ color: chartTextColor } } },
     scales:{
       x:{ ticks:{ color: chartTextColor }, grid:{ display:false } },
       y:{ ticks:{ color: chartTextColor }, grid:{ color: chartGridColor } }
@@ -1099,9 +1387,8 @@ new Chart(document.getElementById("chartMonthNet"),{
   }
 });
 
-/* Modal logic */
 const weekModal = document.getElementById("weekModal");
-const openBtn = document.getElementById("btnOpenWeekModal");
+const openBtnSidebar = document.getElementById("btnOpenWeekModalSidebar");
 const closeBtn = document.getElementById("btnCloseWeekModal");
 const cancelBtn = document.getElementById("btnCancelWeekModal");
 
@@ -1114,9 +1401,9 @@ function closeModal(){
   weekModal.setAttribute("aria-hidden","true");
 }
 
-openBtn.addEventListener("click", openModal);
-closeBtn.addEventListener("click", closeModal);
-cancelBtn.addEventListener("click", closeModal);
+if (openBtnSidebar) openBtnSidebar.addEventListener("click", openModal);
+if (closeBtn) closeBtn.addEventListener("click", closeModal);
+if (cancelBtn) cancelBtn.addEventListener("click", closeModal);
 
 weekModal.addEventListener("click", (e) => {
   if (e.target === weekModal) closeModal();
