@@ -2363,10 +2363,12 @@ def weekly_edit(year, month, week_no):
 
         # Depois que salvou de verdade,
         # não precisamos mais dos dados importados.
-        session.pop(
-            "import_weekly_data",
-            None
-        )
+        # Depois que salvou o fechamento de verdade,
+        # limpa toda a importação temporária.
+        session.pop("import_weekly_data", None)
+        session.pop("weekly_import_dados", None)
+        session.pop("weekly_import_arquivos", None)
+        session.modified = True
 
         flash(
             "Fechamento da semana salvo.",
