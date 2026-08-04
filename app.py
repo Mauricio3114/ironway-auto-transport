@@ -1683,6 +1683,22 @@ def logout():
 @admin_required
 def import_weekly_close():
 
+    # =========================================================
+    # ESTRUTURA PADRÃO DA IMPORTAÇÃO
+    # =========================================================
+
+    campos_padrao = {
+        "periodo": None,
+        "motorista": None,
+        "dispatcher": None,
+        "veiculo": None,
+        "revenue": None,
+        "fuel": None,
+        "miles": None,
+        "gallons": None,
+        "avg_fuel_price": None,
+    }
+
     if request.method == "POST":
 
         # =========================================================
@@ -1726,26 +1742,44 @@ def import_weekly_close():
                 )
 
         # =========================================================
-        # RESULTADO CONSOLIDADO
+        # RECUPERA O QUE JÁ FOI LIDO ANTES
+        # =========================================================
+        #
+        # IMPORTANTE:
+        # Antes essa parte começava sempre zerada.
+        #
+        # Agora buscamos da session os dados encontrados
+        # nos documentos enviados anteriormente.
         # =========================================================
 
-        dados_importados = {
-            "periodo": None,
-            "motorista": None,
-            "dispatcher": None,
-            "veiculo": None,
-            "revenue": None,
-            "fuel": None,
-            "miles": None,
-            "gallons": None,
-            "avg_fuel_price": None,
-        }
+        dados_importados = session.get(
+            "weekly_import_dados",
+            campos_padrao.copy()
+        )
+
+        # Garante compatibilidade caso algum campo novo seja
+        # adicionado futuramente.
+
+        for campo, valor_padrao in campos_padrao.items():
+
+            if campo not in dados_importados:
+                dados_importados[campo] = valor_padrao
+
+        # =========================================================
+        # RECUPERA HISTÓRICO DE ARQUIVOS JÁ PROCESSADOS
+        # =========================================================
+
+        arquivos_anteriores = session.get(
+            "weekly_import_arquivos",
+            []
+        )
 
         arquivos_salvos = []
+
         textos_extraidos = []
 
         # =========================================================
-        # PROCESSA CADA ARQUIVO
+        # PROCESSA CADA NOVO ARQUIVO
         # =========================================================
 
         for arquivo in arquivos:
@@ -1775,7 +1809,9 @@ def import_weekly_close():
             # EXCEL
             # =====================================================
 
-            if nome_arquivo.endswith((".xlsx", ".xlsm")):
+            if nome_arquivo.endswith(
+                (".xlsx", ".xlsm")
+            ):
 
                 dados_arquivo = read_import_excel(
                     saved["path"]
@@ -1818,20 +1854,30 @@ def import_weekly_close():
                     print(
                         "==================================="
                     )
+
                     print(
                         "ARQUIVO:",
                         saved["original_name"]
                     )
+
                     print(
                         "==================================="
                     )
+
                     print("TEXTO OCR:")
+
                     print(extracted_text)
+
                     print(
                         "==================================="
                     )
-                    print("DADOS IDENTIFICADOS:")
+
+                    print(
+                        "DADOS IDENTIFICADOS:"
+                    )
+
                     print(dados_arquivo)
+
                     print(
                         "==================================="
                     )
@@ -1844,23 +1890,132 @@ def import_weekly_close():
                     )
 
             # =====================================================
-            # CONSOLIDA OS DADOS
+            # CONSOLIDA SEM APAGAR O QUE JÁ FOI LIDO
+            # =====================================================
+            #
+            # REGRA:
+            #
+            # Se o campo já possui informação válida,
+            # mantemos.
+            #
+            # O novo documento entra principalmente para
+            # preencher os campos que ainda estão vazios.
             # =====================================================
 
             if dados_arquivo:
 
                 for campo in dados_importados.keys():
 
-                    valor = dados_arquivo.get(campo)
+                    valor_novo = dados_arquivo.get(
+                        campo
+                    )
 
-                    # Não deixa um arquivo vazio apagar
-                    # informação encontrada em outro.
-                    if valor is not None and valor != "":
+                    valor_atual = dados_importados.get(
+                        campo
+                    )
 
-                        dados_importados[campo] = valor
+                    # ---------------------------------------------
+                    # IGNORA VALORES VAZIOS
+                    # ---------------------------------------------
+
+                    if valor_novo is None:
+                        continue
+
+                    if valor_novo == "":
+                        continue
+
+                    # ---------------------------------------------
+                    # CAMPO AINDA VAZIO
+                    # ---------------------------------------------
+
+                    if valor_atual is None or valor_atual == "":
+
+                        dados_importados[campo] = valor_novo
+
+                        continue
+
+                    # ---------------------------------------------
+                    # NÚMEROS
+                    #
+                    # Se o valor atual for zero e o novo documento
+                    # encontrou um valor real, permite preencher.
+                    # ---------------------------------------------
+
+                    if campo in (
+                        "revenue",
+                        "fuel",
+                        "miles",
+                        "gallons",
+                        "avg_fuel_price",
+                    ):
+
+                        try:
+                            atual_num = float(valor_atual)
+                        except (TypeError, ValueError):
+                            atual_num = 0
+
+                        try:
+                            novo_num = float(valor_novo)
+                        except (TypeError, ValueError):
+                            novo_num = 0
+
+                        if atual_num == 0 and novo_num != 0:
+
+                            dados_importados[campo] = (
+                                valor_novo
+                            )
 
         # =========================================================
-        # JUNTA TODOS OS TEXTOS OCR
+        # SALVA TEMPORARIAMENTE OS DADOS NA SESSION
+        # =========================================================
+        #
+        # Agora, quando o usuário voltar e enviar outro documento,
+        # esses valores continuarão disponíveis.
+        # =========================================================
+
+        session["weekly_import_dados"] = dados_importados
+
+        # =========================================================
+        # GUARDA SOMENTE DADOS SEGUROS DOS ARQUIVOS NA SESSION
+        # =========================================================
+        #
+        # Não guardamos objetos FileStorage nem conteúdo pesado.
+        # Apenas informações simples.
+        # =========================================================
+
+        for saved in arquivos_salvos:
+
+            arquivo_session = {
+                "original_name": saved.get(
+                    "original_name"
+                ),
+                "path": saved.get(
+                    "path"
+                ),
+            }
+
+            # Evita repetir o mesmo arquivo no histórico.
+
+            ja_existe = any(
+                item.get("original_name")
+                == arquivo_session["original_name"]
+                for item in arquivos_anteriores
+            )
+
+            if not ja_existe:
+
+                arquivos_anteriores.append(
+                    arquivo_session
+                )
+
+        session["weekly_import_arquivos"] = (
+            arquivos_anteriores
+        )
+
+        session.modified = True
+
+        # =========================================================
+        # JUNTA TEXTOS OCR DESTA RODADA
         # =========================================================
 
         extracted_text = "\n\n".join(
@@ -1872,16 +2027,38 @@ def import_weekly_close():
         # =========================================================
 
         print("\n")
-        print("===================================")
-        print("RESULTADO FINAL CONSOLIDADO")
-        print("===================================")
-        print(dados_importados)
-        print("===================================")
+
         print(
-            "TOTAL DE ARQUIVOS:",
+            "==================================="
+        )
+
+        print(
+            "RESULTADO ACUMULADO DA IMPORTAÇÃO"
+        )
+
+        print(
+            "==================================="
+        )
+
+        print(dados_importados)
+
+        print(
+            "==================================="
+        )
+
+        print(
+            "ARQUIVOS PROCESSADOS NESTA RODADA:",
             len(arquivos_salvos)
         )
-        print("===================================")
+
+        print(
+            "TOTAL ACUMULADO DE ARQUIVOS:",
+            len(arquivos_anteriores)
+        )
+
+        print(
+            "==================================="
+        )
 
         # =========================================================
         # MENSAGEM
@@ -1892,14 +2069,14 @@ def import_weekly_close():
             mensagem = (
                 f"Arquivo "
                 f"{arquivos_salvos[0]['original_name']} "
-                f"recebido com sucesso."
+                f"recebido e adicionado à importação."
             )
 
         else:
 
             mensagem = (
                 f"{len(arquivos_salvos)} arquivos "
-                f"recebidos e analisados com sucesso."
+                f"recebidos e adicionados à importação."
             )
 
         flash(
@@ -1914,16 +2091,21 @@ def import_weekly_close():
         return render_template(
             "import_weekly_preview.html",
 
-            # Mantemos arquivo para não quebrar
-            # o HTML atual da prévia.
+            # Mantém compatibilidade com o HTML atual.
             arquivo=arquivos_salvos[0],
 
-            # E já disponibilizamos a lista completa.
-            arquivos=arquivos_salvos,
+            # Mostra todos os documentos acumulados.
+            arquivos=arquivos_anteriores,
 
+            # Dados acumulados.
             dados=dados_importados,
+
             extracted_text=extracted_text,
         )
+
+    # =========================================================
+    # GET
+    # =========================================================
 
     return render_template(
         "import_weekly_close.html"
