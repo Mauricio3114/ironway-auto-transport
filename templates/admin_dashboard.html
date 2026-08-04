@@ -530,6 +530,495 @@ body{
     grid-template-columns: 1fr;
   }
 }
+
+
+/* ==========================================================
+   IRONWAY — MOBILE PREMIUM
+   SOMENTE CELULAR
+========================================================== */
+
+@media (max-width: 700px){
+
+  html,
+  body{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+  }
+
+  body{
+    margin:0;
+  }
+
+  /* ========================================================
+     ESTRUTURA
+  ======================================================== */
+
+  .page{
+    width:100%;
+    max-width:100%;
+    margin:0;
+    padding:0;
+    display:block;
+  }
+
+  .main-content{
+    width:100%;
+    max-width:100%;
+    padding:12px;
+    box-sizing:border-box;
+  }
+
+
+  /* ========================================================
+     SIDEBAR MOBILE
+     vira cabeçalho compacto
+  ======================================================== */
+
+  .sidebar{
+    width:100%;
+    min-height:auto;
+    padding:10px 12px;
+    border-right:none;
+    border-bottom:1px solid rgba(148,163,184,.12);
+    box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+
+  .sidebar-top{
+    gap:10px;
+  }
+
+  .sidebar-logo-wrap{
+    padding:10px 12px;
+    border-radius:14px;
+    gap:10px;
+  }
+
+  .sidebar-logo-dot{
+    width:12px;
+    height:12px;
+  }
+
+  .sidebar-logo{
+    font-size:20px;
+  }
+
+  .sidebar-logo-sub{
+    font-size:10px;
+    margin-top:3px;
+  }
+
+
+  /* menu horizontal com rolagem */
+
+  .sidebar-nav{
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    gap:7px;
+    overflow-x:auto;
+    padding:2px 0 6px;
+    scrollbar-width:none;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .sidebar-nav::-webkit-scrollbar{
+    display:none;
+  }
+
+  .side-link,
+  .side-link-primary{
+    width:auto;
+    min-width:max-content;
+    flex:0 0 auto;
+    padding:9px 12px;
+    border-radius:12px;
+    font-size:12px;
+    gap:6px;
+  }
+
+  .side-link:hover{
+    transform:none;
+  }
+
+  .side-icon{
+    width:auto;
+    font-size:14px;
+  }
+
+  .sidebar-bottom{
+    padding-top:7px;
+    margin-top:2px;
+  }
+
+  .side-link-logout{
+    margin:0;
+    width:auto;
+    display:inline-flex;
+    padding:8px 12px;
+    font-size:12px;
+  }
+
+
+  /* ========================================================
+     CABEÇALHO
+  ======================================================== */
+
+  .premium-head{
+    margin:0 0 10px;
+    padding:12px 14px;
+    border-radius:16px;
+  }
+
+  .brand-row{
+    gap:8px;
+  }
+
+  .brand-dot{
+    width:10px;
+    height:10px;
+  }
+
+  .premium-head h1{
+    margin:0;
+    font-size:18px;
+    line-height:1.1;
+  }
+
+  .head-sub{
+    margin:5px 0 0 18px;
+    font-size:10px;
+    line-height:1.35;
+  }
+
+
+  /* ========================================================
+     FILTRO ANO / MÊS / SEMANA
+  ======================================================== */
+
+  .main-content > .panel:not(.card){
+    padding:12px !important;
+    border-radius:16px;
+  }
+
+  .main-content > .panel:not(.card) form{
+    display:grid !important;
+    grid-template-columns:1fr 1fr;
+    gap:8px !important;
+    align-items:end !important;
+  }
+
+  .main-content > .panel:not(.card) form > div:nth-child(3){
+    grid-column:1 / -1;
+  }
+
+  .main-content > .panel:not(.card) .input{
+    width:100% !important;
+    box-sizing:border-box;
+    min-height:40px;
+  }
+
+  .main-content > .panel:not(.card) .pbtn{
+    padding:8px 11px;
+    font-size:12px;
+  }
+
+  .main-content > .panel:not(.card) form > div[style*="flex:1"]{
+    display:none;
+  }
+
+  .main-content > .panel:not(.card) .pill{
+    font-size:11px;
+    padding:6px 9px;
+  }
+
+
+  /* ========================================================
+     APLICAÇÃO DA SEMANA
+  ======================================================== */
+
+  .panel.card.w12{
+    padding:14px;
+  }
+
+  .panel.card.w12 > .card-head{
+    align-items:flex-start;
+  }
+
+  .panel.card.w12 .card-title h3{
+    font-size:16px;
+  }
+
+  .panel.card.w12 .card-title .small{
+    font-size:10px;
+  }
+
+  .panel.card.w12 .pbtn{
+    padding:7px 9px;
+    font-size:11px;
+  }
+
+  .panel.card.w12 .picon{
+    width:25px;
+    height:25px;
+  }
+
+
+  /* resumo da semana: 2 por linha */
+
+  .week-highlight-grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:8px;
+  }
+
+  .sum-box{
+    padding:10px;
+    border-radius:12px;
+    min-height:68px;
+  }
+
+  .sum-title{
+    font-size:9px;
+    margin-bottom:4px;
+  }
+
+  .sum-box .kpi2{
+    font-size:18px;
+    margin-top:2px;
+  }
+
+  .sum-box .kpi3{
+    font-size:14px;
+    margin-top:2px;
+    word-break:break-word;
+  }
+
+  .sum-box .small{
+    font-size:9px;
+  }
+
+
+  /* badges da semana */
+
+  .panel.card.w12 > div[style*="flex-wrap"]{
+    gap:6px !important;
+    margin-top:10px !important;
+  }
+
+  .pill{
+    padding:5px 8px;
+    font-size:10px;
+  }
+
+
+  /* ========================================================
+     GRID PRINCIPAL
+     KPIs 2 POR LINHA
+  ======================================================== */
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(2, minmax(0,1fr));
+    gap:9px;
+  }
+
+  .grid > .card{
+    grid-column:span 1;
+    min-height:125px;
+    padding:12px;
+    border-radius:15px;
+  }
+
+
+  /* ========================================================
+     KPIs
+  ======================================================== */
+
+  .grid > .card:not(.w6):not(.w12) .card-head{
+    gap:5px;
+    align-items:flex-start;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .card-title{
+    gap:6px;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .ico{
+    width:28px;
+    height:28px;
+    border-radius:9px;
+    flex-shrink:0;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .ico svg{
+    width:14px;
+    height:14px;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .muted.small{
+    font-size:9px;
+    line-height:1.2;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .pill{
+    padding:4px 6px;
+    font-size:9px;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .kpi{
+    font-size:23px;
+    margin-top:10px;
+    line-height:1;
+    word-break:break-word;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .kpi-sub{
+    margin-top:8px;
+    font-size:9px;
+    line-height:1.3;
+  }
+
+
+  /* ========================================================
+     GRÁFICOS
+     1 por linha mas bem menores
+  ======================================================== */
+
+  .grid > .card.w6{
+    grid-column:1 / -1;
+    min-height:0;
+    padding:12px;
+  }
+
+  .grid > .card.w6 .card-head{
+    margin-bottom:4px !important;
+  }
+
+  .grid > .card.w6 h3{
+    font-size:14px;
+    line-height:1.2;
+  }
+
+  .grid > .card.w6 .ico{
+    width:28px;
+    height:28px;
+    border-radius:9px;
+  }
+
+  .grid > .card.w6 .ico svg{
+    width:14px;
+    height:14px;
+  }
+
+  .chart-wrap{
+    height:220px;
+  }
+
+
+  /* ========================================================
+     TABELA SEMANAL
+  ======================================================== */
+
+  .grid > .card.w12{
+    grid-column:1 / -1;
+  }
+
+  .grid > .card.w12:last-child{
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .grid > .card.w12:last-child > div:first-child{
+    min-width:0;
+  }
+
+  .grid > .card.w12:last-child h3{
+    font-size:15px;
+  }
+
+  .grid > .card.w12:last-child .small{
+    font-size:9px;
+  }
+
+  .table{
+    min-width:850px;
+    font-size:11px;
+  }
+
+  .table th,
+  .table td{
+    padding:8px;
+  }
+
+
+  /* ========================================================
+     MODAL
+  ======================================================== */
+
+  .modal-backdrop{
+    padding:10px;
+  }
+
+  .modal-box{
+    border-radius:16px;
+  }
+
+  .week-grid{
+    grid-template-columns:repeat(2,1fr);
+    gap:8px;
+  }
+
+  .week-btn{
+    padding:12px 8px;
+    font-size:12px;
+  }
+
+}
+
+
+/* ==========================================================
+   CELULARES MUITO PEQUENOS
+========================================================== */
+
+@media (max-width: 390px){
+
+  .main-content{
+    padding:9px;
+  }
+
+  .grid{
+    gap:7px;
+  }
+
+  .grid > .card{
+    padding:10px;
+  }
+
+  .grid > .card:not(.w6):not(.w12) .kpi{
+    font-size:20px;
+  }
+
+  .week-highlight-grid{
+    gap:6px;
+  }
+
+  .sum-box{
+    padding:9px;
+  }
+
+  .sum-box .kpi2{
+    font-size:16px;
+  }
+
+  .sum-box .kpi3{
+    font-size:12px;
+  }
+
+  .chart-wrap{
+    height:200px;
+  }
+}
 </style>
 </head>
 
