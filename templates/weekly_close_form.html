@@ -6,570 +6,1340 @@
   <title>Fechar Semana</title>
 
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
   <style>
-    .page{
-      max-width: 1720px;
-      margin: 0 auto;
-      padding: 20px;
-      box-sizing: border-box;
+    /* =========================================================
+       IRONWAY - FECHAMENTO SEMANAL
+       CSS ISOLADO DA TELA
+       ========================================================= */
+
+    body{
+      margin:0 !important;
+      min-width:0 !important;
+      overflow-x:hidden !important;
     }
 
-    .page-head{
-      margin-bottom: 18px;
-      display:flex;
-      align-items:flex-end;
-      gap:12px;
-      flex-wrap:wrap;
-    }
-
-    .page-head h1{
-      font-size: 28px;
-      line-height: 1.15;
-      margin-bottom: 10px;
-    }
-
-.weekly-layout{
-  display:grid;
-  grid-template-columns: minmax(920px, 2.4fr) minmax(340px, 0.8fr);
-  gap:18px;
-  align-items:start;
-}
-
-    .panel{
-      padding: 20px;
-      box-sizing: border-box;
-      min-width: 0;
-    }
-
-    .main-panel{
-      min-height: 560px;
-    }
-
-    .preview-panel{
-      min-height: 560px;
-      position: sticky;
-      top: 18px;
-    }
-
-    label{
-      display:block;
-      font-size:12px;
-      opacity:.82;
-      margin:0 0 6px;
-    }
-
-    .help{
-      font-size:12px;
-      opacity:.72;
-      margin-top:6px;
-    }
-
-    .hr{
-      height:1px;
-      background: rgba(148,163,184,.12);
-      margin:12px 0;
-    }
-
-    .kpi2{
-      font-size:22px;
-      font-weight:900;
-      margin-top:6px;
-    }
-
-    .kpi3{
-      font-size:18px;
-      font-weight:900;
-      margin-top:4px;
-    }
-
-    .right{
-      display:flex;
-      gap:10px;
-      justify-content:flex-end;
-      align-items:center;
-      flex-wrap:wrap;
-    }
-
-    .badge{
-      display:inline-flex;
-      align-items:center;
-      gap:8px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid rgba(148,163,184,.18);
-      background: rgba(2,6,23,.45);
-      font-weight:800;
-      font-size:12px;
-      color:#e2e8f0;
-    }
-
-    .green{ color:#86efac; border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.10); }
-    .red{ color:#fecaca; border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.10); }
-    .yellow{ color:#fde68a; border-color: rgba(250,204,21,.25); background: rgba(250,204,21,.10); }
-    .orange{ color:#fdba74; border-color: rgba(249,115,22,.25); background: rgba(249,115,22,.10); }
-    .blue{ color:#7dd3fc; border-color: rgba(56,189,248,.25); background: rgba(56,189,248,.10); }
-    .gray{ color:#cbd5e1; border-color: rgba(148,163,184,.20); background: rgba(100,116,139,.10); }
-
-    .summary-grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap:12px;
-    }
-
-    .sum-box{
-      border:1px solid rgba(148,163,184,.12);
-      border-radius:16px;
-      padding:12px;
-      background: rgba(2,6,23,.18);
-      min-width: 0;
-    }
-
-    .sum-title{
-      font-size:12px;
-      opacity:.72;
-      margin-bottom:6px;
-    }
-
-    .head-note{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      margin-top:8px;
-    }
-
-    .btn-compact{
-      padding: 10px 14px !important;
-      border-radius: 999px !important;
-      font-weight: 900 !important;
-      display:inline-flex;
-      gap:10px;
-      align-items:center;
-    }
-
-    .btn-ico{
-      width:28px;
-      height:28px;
-      border-radius:12px;
-      display:grid;
-      place-items:center;
-      border:1px solid rgba(148,163,184,0.18);
-      background: rgba(2,6,23,0.25);
-    }
-
-    .btn-ico svg{
-      width:16px;
-      height:16px;
-      opacity:.95;
-    }
-
-    .muted-line{
-      margin-top:12px;
-    }
-
-    .weekly-form-grid{
-      display:grid;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-      gap:14px;
-      align-items:start;
-    }
-
-    .field{
-      min-width:0;
-    }
-
-    .span-12{ grid-column: span 12; }
-    .span-8{ grid-column: span 8; }
-    .span-6{ grid-column: span 6; }
-    .span-4{ grid-column: span 4; }
-
-    .triple-selects{
-      display:grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap:12px;
-    }
-
-    .input,
-    select.input,
-    textarea.input{
-      width:100%;
+    .weekly-page,
+    .weekly-page *{
       box-sizing:border-box;
     }
 
-    @media (max-width: 1400px){
-      .weekly-layout{
-        grid-template-columns: minmax(0, 1.7fr) minmax(340px, 0.95fr);
+    .weekly-page{
+      width:100% !important;
+      max-width:1600px !important;
+      margin:0 auto !important;
+      padding:24px !important;
+      display:block !important;
+    }
+
+    /* =========================================================
+       CABEÇALHO
+       ========================================================= */
+
+    .weekly-header{
+      width:100%;
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:24px;
+      margin-bottom:20px;
+    }
+
+    .weekly-header-info{
+      min-width:0;
+      flex:1;
+    }
+
+    .weekly-header h1{
+      margin:0 0 8px !important;
+      font-size:27px !important;
+      line-height:1.2 !important;
+      font-weight:900 !important;
+    }
+
+    .weekly-header-description{
+      margin:0 !important;
+      max-width:900px;
+      line-height:1.6;
+    }
+
+    .weekly-badges{
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:8px;
+      margin-top:12px;
+    }
+
+    .weekly-actions{
+      display:flex;
+      align-items:center;
+      justify-content:flex-end;
+      flex-wrap:wrap;
+      gap:9px;
+      flex-shrink:0;
+    }
+
+    .weekly-page .badge{
+      display:inline-flex !important;
+      align-items:center !important;
+      gap:7px !important;
+      padding:7px 11px !important;
+      border-radius:999px !important;
+      border:1px solid rgba(148,163,184,.18) !important;
+      background:rgba(2,6,23,.45) !important;
+      font-size:12px !important;
+      line-height:1 !important;
+      font-weight:800 !important;
+      white-space:nowrap !important;
+    }
+
+    .weekly-page .badge.blue{
+      color:#7dd3fc !important;
+      border-color:rgba(56,189,248,.25) !important;
+      background:rgba(56,189,248,.10) !important;
+    }
+
+    .weekly-page .badge.gray{
+      color:#cbd5e1 !important;
+      border-color:rgba(148,163,184,.20) !important;
+      background:rgba(100,116,139,.10) !important;
+    }
+
+    .weekly-page .badge.green{
+      color:#86efac !important;
+      border-color:rgba(34,197,94,.25) !important;
+      background:rgba(34,197,94,.10) !important;
+    }
+
+    .weekly-page .badge.red{
+      color:#fecaca !important;
+      border-color:rgba(239,68,68,.25) !important;
+      background:rgba(239,68,68,.10) !important;
+    }
+
+    .weekly-page .badge.yellow{
+      color:#fde68a !important;
+      border-color:rgba(250,204,21,.25) !important;
+      background:rgba(250,204,21,.10) !important;
+    }
+
+    .weekly-page .badge.orange{
+      color:#fdba74 !important;
+      border-color:rgba(249,115,22,.25) !important;
+      background:rgba(249,115,22,.10) !important;
+    }
+
+    .weekly-page .weekly-btn{
+      min-height:42px !important;
+      padding:9px 14px !important;
+      border-radius:13px !important;
+      display:inline-flex !important;
+      align-items:center !important;
+      justify-content:center !important;
+      gap:8px !important;
+      text-decoration:none !important;
+      white-space:nowrap !important;
+      font-weight:800 !important;
+    }
+
+    .weekly-btn-icon{
+      width:25px;
+      height:25px;
+      border-radius:8px;
+      display:grid;
+      place-items:center;
+      border:1px solid rgba(148,163,184,.18);
+      background:rgba(2,6,23,.25);
+    }
+
+    .weekly-btn-icon svg{
+      width:15px;
+      height:15px;
+    }
+
+    /* =========================================================
+       FLASH
+       ========================================================= */
+
+    .weekly-page .flash-area{
+      width:100% !important;
+      margin:0 0 16px !important;
+    }
+
+    .weekly-page .flash{
+      width:100% !important;
+      margin:0 0 8px !important;
+      padding:12px 15px !important;
+      border-radius:12px !important;
+      line-height:1.45 !important;
+    }
+
+    /* =========================================================
+       LAYOUT PRINCIPAL
+       ========================================================= */
+
+    .weekly-page .weekly-layout{
+      width:100% !important;
+      display:grid !important;
+      grid-template-columns:minmax(0, 1fr) 390px !important;
+      gap:20px !important;
+      align-items:start !important;
+      position:relative !important;
+    }
+
+    .weekly-page .weekly-main,
+    .weekly-page .weekly-preview{
+      width:100% !important;
+      min-width:0 !important;
+      max-width:none !important;
+      margin:0 !important;
+      float:none !important;
+      position:relative;
+    }
+
+    .weekly-page .weekly-main{
+      padding:22px !important;
+    }
+
+    .weekly-page .weekly-preview{
+      padding:20px !important;
+      position:sticky !important;
+      top:18px !important;
+    }
+
+    .weekly-section-title{
+      margin:0 !important;
+      font-size:20px !important;
+      font-weight:900 !important;
+    }
+
+    .weekly-subtitle{
+      margin:5px 0 0 !important;
+      font-size:12px !important;
+      opacity:.72 !important;
+    }
+
+    .weekly-divider{
+      width:100%;
+      height:1px;
+      background:rgba(148,163,184,.13);
+      margin:17px 0;
+    }
+
+    /* =========================================================
+       FORM
+       ========================================================= */
+
+    .weekly-page form{
+      width:100% !important;
+      display:block !important;
+      margin:0 !important;
+    }
+
+    .weekly-form-grid{
+      width:100% !important;
+      display:grid !important;
+      grid-template-columns:repeat(12,minmax(0,1fr)) !important;
+      gap:15px !important;
+      align-items:start !important;
+    }
+
+    .weekly-field{
+      min-width:0 !important;
+      width:100% !important;
+      display:block !important;
+    }
+
+    .weekly-span-12{ grid-column:span 12 !important; }
+    .weekly-span-8{ grid-column:span 8 !important; }
+    .weekly-span-6{ grid-column:span 6 !important; }
+    .weekly-span-4{ grid-column:span 4 !important; }
+
+    .weekly-triple{
+      width:100%;
+      display:grid !important;
+      grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+      gap:15px !important;
+    }
+
+    .weekly-page label{
+      display:block !important;
+      width:auto !important;
+      margin:0 0 7px !important;
+      font-size:12px !important;
+      line-height:1.3 !important;
+      opacity:.82 !important;
+    }
+
+    .weekly-page .input,
+    .weekly-page input.input,
+    .weekly-page select.input,
+    .weekly-page textarea.input{
+      display:block !important;
+      width:100% !important;
+      max-width:none !important;
+      min-width:0 !important;
+      height:auto !important;
+      min-height:44px !important;
+      margin:0 !important;
+      padding:10px 12px !important;
+      box-sizing:border-box !important;
+    }
+
+    .weekly-page textarea.input{
+      min-height:92px !important;
+      resize:vertical !important;
+    }
+
+    .weekly-help{
+      margin-top:6px;
+      font-size:11px;
+      line-height:1.4;
+      opacity:.68;
+    }
+
+    .weekly-save-area{
+      width:100%;
+      display:flex;
+      justify-content:flex-end;
+      align-items:center;
+      margin-top:4px;
+    }
+
+    .weekly-save-area .btn{
+      min-width:190px !important;
+      min-height:46px !important;
+      padding:11px 20px !important;
+      border-radius:13px !important;
+      font-weight:900 !important;
+    }
+
+    /* =========================================================
+       PREVIEW
+       ========================================================= */
+
+    .weekly-summary-grid{
+      width:100%;
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:10px;
+    }
+
+    .weekly-summary-box{
+      min-width:0;
+      padding:13px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.12);
+      background:rgba(2,6,23,.18);
+    }
+
+    .weekly-summary-label{
+      font-size:11px;
+      opacity:.70;
+      margin-bottom:5px;
+    }
+
+    .weekly-kpi{
+      font-size:21px;
+      line-height:1.2;
+      font-weight:900;
+      word-break:break-word;
+    }
+
+    .weekly-preview-badges{
+      display:flex;
+      align-items:center;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+
+    .weekly-values{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:0 14px;
+    }
+
+    .weekly-value{
+      padding:10px 0;
+      border-bottom:1px solid rgba(148,163,184,.10);
+      min-width:0;
+    }
+
+    .weekly-value-label{
+      font-size:11px;
+      opacity:.68;
+      margin-bottom:3px;
+    }
+
+    .weekly-value-number{
+      font-size:17px;
+      line-height:1.25;
+      font-weight:900;
+      word-break:break-word;
+    }
+
+    .weekly-total{
+      grid-column:1 / -1;
+      margin-top:4px;
+      padding:14px;
+      border:1px solid rgba(148,163,184,.13);
+      border-radius:14px;
+      background:rgba(2,6,23,.20);
+    }
+
+    .weekly-total .weekly-value{
+      padding:5px 0;
+      border:0;
+    }
+
+    /* =========================================================
+       RESPONSIVO
+       ========================================================= */
+
+    @media (max-width:1250px){
+      .weekly-page .weekly-layout{
+        grid-template-columns:minmax(0,1fr) 350px !important;
+      }
+
+      .weekly-header{
+        flex-direction:column;
+      }
+
+      .weekly-actions{
+        justify-content:flex-start;
       }
     }
 
-    @media (max-width: 1100px){
-      .weekly-layout{
-        grid-template-columns: 1fr;
+    @media (max-width:1000px){
+      .weekly-page{
+        padding:16px !important;
       }
 
-      .preview-panel{
-        position: static;
+      .weekly-page .weekly-layout{
+        grid-template-columns:1fr !important;
+      }
+
+      .weekly-page .weekly-preview{
+        position:static !important;
       }
     }
 
-    @media (max-width: 768px){
-      .page{
-        padding:16px;
+    @media (max-width:720px){
+      .weekly-page{
+        padding:12px !important;
+      }
+
+      .weekly-header h1{
+        font-size:22px !important;
+      }
+
+      .weekly-page .weekly-main,
+      .weekly-page .weekly-preview{
+        padding:16px !important;
       }
 
       .weekly-form-grid{
-        grid-template-columns: repeat(1, minmax(0, 1fr));
+        grid-template-columns:1fr !important;
       }
 
-      .span-12,
-      .span-8,
-      .span-6,
-      .span-4{
-        grid-column: 1 / -1;
+      .weekly-span-12,
+      .weekly-span-8,
+      .weekly-span-6,
+      .weekly-span-4{
+        grid-column:1 / -1 !important;
       }
 
-      .triple-selects{
-        grid-template-columns: 1fr;
+      .weekly-triple{
+        grid-template-columns:1fr !important;
       }
 
-      .summary-grid{
-        grid-template-columns: 1fr;
+      .weekly-summary-grid{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .weekly-values{
+        grid-template-columns:1fr;
+      }
+
+      .weekly-actions{
+        width:100%;
+      }
+
+      .weekly-save-area .btn{
+        width:100% !important;
+      }
+    }
+
+    @media (max-width:480px){
+      .weekly-summary-grid{
+        grid-template-columns:1fr;
+      }
+
+      .weekly-actions .weekly-btn{
+        flex:1 1 auto !important;
       }
     }
   </style>
 </head>
 
 <body>
-  <div class="page">
 
-    <div class="page-head">
-      <div>
-        <h1>FECHAR SEMANA • {{ year }}/{{ "%02d"|format(month) }} • Semana {{ week_no }}</h1>
-        <p class="muted">
-          Preencha os valores. O sistema já calcula Driver ({{ "%.2f"|format(driver_percent or 0) }}%),
-          Dispatcher ({{ "%.2f"|format(dispatcher_percent or 0) }}%), fixos rateados,
-          média do combustível, $/milha e resultado %.
-        </p>
+<div class="weekly-page">
 
-        <div class="head-note">
-          <span class="badge blue">Driver {{ "%.2f"|format(driver_percent or 0) }}%</span>
-          <span class="badge blue">Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%</span>
-          <span class="badge gray">Fuel Target ${{ "%.2f"|format(fuel_target_price or 0) }}</span>
-          <span class="badge gray">Rateio {{ weeks_in_month }} semanas</span>
-        </div>
+  <!-- =======================================================
+       CABEÇALHO
+       ======================================================= -->
+
+  <div class="weekly-header">
+
+    <div class="weekly-header-info">
+
+      <h1>
+        FECHAR SEMANA •
+        {{ year }}/{{ "%02d"|format(month) }}
+        • Semana {{ week_no }}
+      </h1>
+
+      <p class="muted weekly-header-description">
+        Preencha os valores. O sistema já calcula Driver
+        ({{ "%.2f"|format(driver_percent or 0) }}%),
+        Dispatcher ({{ "%.2f"|format(dispatcher_percent or 0) }}%),
+        fixos rateados, média do combustível, $/milha e resultado %.
+      </p>
+
+      <div class="weekly-badges">
+        <span class="badge blue">
+          Driver {{ "%.2f"|format(driver_percent or 0) }}%
+        </span>
+
+        <span class="badge blue">
+          Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%
+        </span>
+
+        <span class="badge gray">
+          Fuel Target ${{ "%.2f"|format(fuel_target_price or 0) }}
+        </span>
+
+        <span class="badge gray">
+          Rateio {{ weeks_in_month }} semanas
+        </span>
       </div>
 
-      <div style="flex:1"></div>
+    </div>
 
-      <div class="right">
-        <a class="btn btn-outline btn-compact" href="{{ url_for('dashboard', year=year, month=month) }}">
-          <span class="btn-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M15 18l-6-6 6-6"/>
+    <div class="weekly-actions">
+
+      <a
+        class="btn btn-outline weekly-btn"
+        href="{{ url_for('dashboard', year=year, month=month) }}"
+      >
+        <span class="weekly-btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M15 18l-6-6 6-6"/>
+          </svg>
+        </span>
+        Voltar
+      </a>
+
+      {% if week_no > 1 %}
+
+        <a
+          class="btn btn-outline weekly-btn"
+          href="{{ url_for('weekly_duplicate_from_prev', year=year, month=month, week_no=week_no) }}"
+          title="Copiar dados da semana anterior"
+        >
+          <span class="weekly-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M8 7h10v14H8z"/>
+              <path d="M6 3h10v4"/>
             </svg>
           </span>
-          Voltar
+
+          Copiar Semana {{ week_no - 1 }}
         </a>
 
-        {% if week_no > 1 %}
-          <a class="btn btn-outline btn-compact"
-             href="{{ url_for('weekly_duplicate_from_prev', year=year, month=month, week_no=week_no) }}"
-             title="Copiar dados da semana anterior">
-            <span class="btn-ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 7h10v14H8z"/>
-                <path d="M6 3h10v4"/>
-              </svg>
-            </span>
-            Copiar Semana {{ week_no - 1 }}
-          </a>
+      {% else %}
+
+        <a
+          class="btn btn-outline weekly-btn"
+          style="opacity:.45;pointer-events:none;"
+          href="#"
+        >
+          <span class="weekly-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                 stroke-width="1.9" stroke-linecap="round"
+                 stroke-linejoin="round">
+              <path d="M8 7h10v14H8z"/>
+              <path d="M6 3h10v4"/>
+            </svg>
+          </span>
+
+          Copiar Semana
+        </a>
+
+      {% endif %}
+
+      <a
+        class="btn btn-outline weekly-btn"
+        href="{{ url_for('weekly_pdf', year=year, month=month, week_no=week_no) }}"
+        target="_blank"
+        title="Gerar PDF desta semana"
+      >
+        <span class="weekly-btn-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="1.9" stroke-linecap="round"
+               stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <path d="M14 2v6h6"/>
+            <path d="M8 13h8"/>
+            <path d="M8 17h6"/>
+          </svg>
+        </span>
+
+        PDF
+      </a>
+
+      <span class="badge gray">
+        Fixos mês:
+        <b>${{ "%.2f"|format(fixed_month_total or 0) }}</b>
+      </span>
+
+    </div>
+
+  </div>
+
+
+  <!-- =======================================================
+       MENSAGENS
+       ======================================================= -->
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+
+      <div class="flash-area">
+
+        {% for cat, msg in messages %}
+          <div class="flash {{ cat }}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+
+      </div>
+
+    {% endif %}
+  {% endwith %}
+
+
+  <!-- =======================================================
+       CONTEÚDO
+       ======================================================= -->
+
+  <div class="weekly-layout">
+
+
+    <!-- =====================================================
+         FORMULÁRIO
+         ===================================================== -->
+
+    <section class="card weekly-main">
+
+      <h3 class="weekly-section-title">
+        Lançamento da Semana
+      </h3>
+
+      <p class="muted weekly-subtitle">
+        Dica: use datas no formato
+        <b>YYYY-MM-DD</b>
+        (ex: 2026-03-01)
+      </p>
+
+      <div class="weekly-divider"></div>
+
+
+      <form method="POST">
+
+        <div class="weekly-form-grid">
+
+
+          <!-- PERÍODO -->
+
+          <div class="weekly-field weekly-span-6">
+
+            <label>Período início</label>
+
+            <input
+              class="input"
+              name="period_start"
+              value="{{ row.period_start if row else '' }}"
+              placeholder="2026-03-01"
+            >
+
+          </div>
+
+
+          <div class="weekly-field weekly-span-6">
+
+            <label>Período fim</label>
+
+            <input
+              class="input"
+              name="period_end"
+              value="{{ row.period_end if row else '' }}"
+              placeholder="2026-03-07"
+            >
+
+          </div>
+
+
+          <!-- MOTORISTA / DISPATCHER / VEÍCULO -->
+
+          <div class="weekly-field weekly-span-12">
+
+            <div class="weekly-triple">
+
+
+              <div class="weekly-field">
+
+                <label>Motorista</label>
+
+                <select class="input" name="motorista_id">
+
+                  <option value="">
+                    Selecione
+                  </option>
+
+                  {% for m in motoristas %}
+
+                    <option
+                      value="{{ m.id }}"
+                      {% if row and row.motorista_id == m.id %}
+                        selected
+                      {% endif %}
+                    >
+                      {{ m.nome }}
+                    </option>
+
+                  {% endfor %}
+
+                </select>
+
+              </div>
+
+
+              <div class="weekly-field">
+
+                <label>Dispatcher</label>
+
+                <select class="input" name="dispatcher_id">
+
+                  <option value="">
+                    Selecione
+                  </option>
+
+                  {% for d in dispatchers %}
+
+                    <option
+                      value="{{ d.id }}"
+                      {% if row and row.dispatcher_id == d.id %}
+                        selected
+                      {% endif %}
+                    >
+                      {{ d.nome }}
+                    </option>
+
+                  {% endfor %}
+
+                </select>
+
+              </div>
+
+
+              <div class="weekly-field">
+
+                <label>Veículo / Frota</label>
+
+                <select class="input" name="veiculo_id">
+
+                  <option value="">
+                    Selecione
+                  </option>
+
+                  {% for v in veiculos %}
+
+                    <option
+                      value="{{ v.id }}"
+                      {% if row and row.veiculo_id == v.id %}
+                        selected
+                      {% endif %}
+                    >
+                      {{ v.nome }}
+                      {% if v.placa %}
+                        - {{ v.placa }}
+                      {% endif %}
+                    </option>
+
+                  {% endfor %}
+
+                </select>
+
+              </div>
+
+
+            </div>
+
+          </div>
+
+
+          <!-- RECEITA -->
+
+          <div class="weekly-field weekly-span-8">
+
+            <label>Receita (Revenue)</label>
+
+            <input
+              class="input"
+              name="revenue"
+              value="{{ row.revenue if row else '' }}"
+              placeholder="12000"
+            >
+
+            <div class="weekly-help">
+              Driver {{ "%.2f"|format(driver_percent or 0) }}%
+              •
+              Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%
+            </div>
+
+          </div>
+
+
+          <!-- FUEL -->
+
+          <div class="weekly-field weekly-span-4">
+
+            <label>Fuel (Total pago)</label>
+
+            <input
+              class="input"
+              name="fuel"
+              value="{{ row.fuel if row else '' }}"
+              placeholder="2400"
+            >
+
+            <div class="weekly-help">
+              Valor total pago na semana
+            </div>
+
+          </div>
+
+
+          <!-- DESPESAS EXTRAS -->
+
+          <div class="weekly-field weekly-span-12">
+
+            <label>Despesas extras</label>
+
+            <input
+              class="input"
+              name="extra_expenses"
+              value="{{ row.extra_expenses if row else '' }}"
+              placeholder="300"
+            >
+
+          </div>
+
+
+          <!-- CARGO -->
+
+          <div class="weekly-field weekly-span-4">
+
+            <label>Cargo insurance (weekly)</label>
+
+            <input
+              class="input"
+              name="cargo_insurance_weekly"
+              value="{{ row.cargo_insurance_weekly if row else 250.0 }}"
+              placeholder="250"
+            >
+
+          </div>
+
+
+          <!-- MILES -->
+
+          <div class="weekly-field weekly-span-4">
+
+            <label>Miles</label>
+
+            <input
+              class="input"
+              name="miles"
+              value="{{ row.miles if row else '' }}"
+              placeholder="2400"
+            >
+
+            <div class="weekly-help">
+              Usado para calcular $ / milha
+            </div>
+
+          </div>
+
+
+          <!-- GALLONS -->
+
+          <div class="weekly-field weekly-span-4">
+
+            <label>Gallons</label>
+
+            <input
+              class="input"
+              name="gallons"
+              value="{{ row.gallons if row else '' }}"
+              placeholder="320"
+            >
+
+            <div class="weekly-help">
+              Usado para média do combustível
+            </div>
+
+          </div>
+
+
+          <!-- STATUS -->
+
+          <div class="weekly-field weekly-span-6">
+
+            <label>Status pagamento</label>
+
+            {% set ps = (row.payment_status if row else 'pendente') %}
+
+            <select
+              class="input"
+              name="payment_status"
+            >
+
+              <option
+                value="pendente"
+                {{ 'selected' if ps == 'pendente' else '' }}
+              >
+                Pendente
+              </option>
+
+              <option
+                value="pago"
+                {{ 'selected' if ps == 'pago' else '' }}
+              >
+                Pago
+              </option>
+
+            </select>
+
+          </div>
+
+
+          <!-- TARGET -->
+
+          <div class="weekly-field weekly-span-6">
+
+            <label>Fuel Target do mês</label>
+
+            <input
+              class="input"
+              value="${{ "%.2f"|format(fuel_target_price or 0) }}"
+              disabled
+            >
+
+            <div class="weekly-help">
+              Configurado em Fixed Costs / Finance Config
+            </div>
+
+          </div>
+
+
+          <!-- NOTAS -->
+
+          <div class="weekly-field weekly-span-12">
+
+            <label>Notas</label>
+
+            <textarea
+              class="input"
+              name="notes"
+              rows="4"
+              placeholder="Observações da semana..."
+            >{{ row.notes if row and row.notes else '' }}</textarea>
+
+          </div>
+
+
+        </div>
+
+
+        <div class="weekly-divider"></div>
+
+
+        <div class="weekly-save-area">
+
+          <button
+            class="btn"
+            type="submit"
+          >
+            Salvar fechamento
+          </button>
+
+        </div>
+
+      </form>
+
+    </section>
+
+
+    <!-- =====================================================
+         PRÉVIA
+         ===================================================== -->
+
+    <aside class="card weekly-preview">
+
+      <h3 class="weekly-section-title">
+        Prévia do Cálculo
+      </h3>
+
+      <p class="muted weekly-subtitle">
+        Atualiza ao salvar. A prévia usa os valores atualmente carregados.
+      </p>
+
+
+      <div class="weekly-divider"></div>
+
+
+      {% set net = (preview.net or 0) %}
+      {% set fuel_avg = preview.avg_fuel_price %}
+      {% set fuel_target = preview.fuel_target_price or 0 %}
+      {% set result_pct = preview.result_percent or 0 %}
+      {% set fuel_vs_target = preview.fuel_vs_target_percent %}
+
+
+      <!-- KPIS -->
+
+      <div class="weekly-summary-grid">
+
+
+        <div class="weekly-summary-box">
+
+          <div class="weekly-summary-label">
+            Net
+          </div>
+
+          <div class="weekly-kpi {% if net >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
+            ${{ "%.2f"|format(net) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-summary-box">
+
+          <div class="weekly-summary-label">
+            Result %
+          </div>
+
+          <div class="weekly-kpi
+            {% if result_pct >= 20 %}
+              kpi-green
+            {% elif result_pct >= 10 %}
+              kpi-yellow
+            {% elif result_pct >= 0 %}
+              kpi-orange
+            {% else %}
+              kpi-red
+            {% endif %}
+          ">
+            {{ "%.2f"|format(result_pct) }}%
+          </div>
+
+        </div>
+
+
+        <div class="weekly-summary-box">
+
+          <div class="weekly-summary-label">
+            $ / Mile
+          </div>
+
+          <div class="weekly-kpi kpi-blue">
+
+            {% if preview.dollars_per_mile is not none %}
+
+              ${{ "%.2f"|format(preview.dollars_per_mile) }}
+
+            {% else %}
+
+              --
+
+            {% endif %}
+
+          </div>
+
+        </div>
+
+
+        <div class="weekly-summary-box">
+
+          <div class="weekly-summary-label">
+            Avg Fuel Price
+          </div>
+
+          <div class="weekly-kpi
+            {% if fuel_avg is not none and fuel_avg <= fuel_target %}
+              kpi-green
+            {% elif fuel_avg is not none and fuel_avg <= (fuel_target * 1.10) %}
+              kpi-yellow
+            {% elif fuel_avg is not none %}
+              kpi-orange
+            {% endif %}
+          ">
+
+            {% if fuel_avg is not none %}
+
+              ${{ "%.2f"|format(fuel_avg) }}
+
+            {% else %}
+
+              --
+
+            {% endif %}
+
+          </div>
+
+        </div>
+
+
+      </div>
+
+
+      <div class="weekly-divider"></div>
+
+
+      <!-- ALERTAS -->
+
+      <div class="weekly-preview-badges">
+
+        {% if fuel_avg is none %}
+
+          <span class="badge gray">
+            Sem dados de combustível
+          </span>
+
+        {% elif fuel_avg <= fuel_target %}
+
+          <span class="badge green">
+            Combustível dentro da meta
+          </span>
+
+        {% elif fuel_avg <= (fuel_target * 1.10) %}
+
+          <span class="badge yellow">
+            Combustível em atenção
+          </span>
+
         {% else %}
-          <a class="btn btn-outline btn-compact" style="opacity:.45; pointer-events:none;" href="#">
-            <span class="btn-ico" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M8 7h10v14H8z"/>
-                <path d="M6 3h10v4"/>
-              </svg>
-            </span>
-            Copiar Semana
-          </a>
+
+          <span class="badge orange">
+            Combustível acima da meta
+          </span>
+
         {% endif %}
 
-        <a class="btn btn-outline btn-compact"
-           href="{{ url_for('weekly_pdf', year=year, month=month, week_no=week_no) }}"
-           target="_blank"
-           title="Gerar PDF desta semana">
-          <span class="btn-ico" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <path d="M14 2v6h6"/>
-              <path d="M8 13h8"/>
-              <path d="M8 17h6"/>
-            </svg>
+
+        {% if net >= 0 %}
+
+          <span class="badge green">
+            Semana positiva
           </span>
-          PDF
-        </a>
 
-        <span class="badge gray">Fixos mês: <b>${{ "%.2f"|format(fixed_month_total or 0) }}</b></span>
+        {% else %}
+
+          <span class="badge red">
+            Semana negativa
+          </span>
+
+        {% endif %}
+
       </div>
-    </div>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flash-area">
-          {% for cat, msg in messages %}
-            <div class="flash {{ cat }}">{{ msg }}</div>
-          {% endfor %}
+
+      <div class="weekly-divider"></div>
+
+
+      <!-- DETALHAMENTO -->
+
+      <div class="weekly-values">
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Revenue
+          </div>
+
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.revenue or 0) }}
+          </div>
+
         </div>
-      {% endif %}
-    {% endwith %}
 
-    <div class="weekly-layout">
 
-      <!-- FORM -->
-      <div class="panel card main-panel">
-        <h3 style="margin:0 0 10px;">Lançamento da Semana</h3>
-        <p class="muted small muted-line">
-          Dica: use datas no formato <b>YYYY-MM-DD</b> (ex: 2026-03-01)
-        </p>
+        <div class="weekly-value">
 
-        <div class="hr"></div>
+          <div class="weekly-value-label">
+            Driver ({{ "%.2f"|format(preview.driver_percent or 0) }}%)
+          </div>
 
-        <form method="POST">
-          <div class="weekly-form-grid">
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.driver or 0) }}
+          </div>
 
-            <div class="field span-6">
-              <label>Período início</label>
-              <input class="input" name="period_start" value="{{ row.period_start if row else '' }}" placeholder="2026-03-01">
+        </div>
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Dispatcher ({{ "%.2f"|format(preview.dispatcher_percent or 0) }}%)
+          </div>
+
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.dispatcher or 0) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Fuel
+          </div>
+
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.fuel or 0) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Extras
+          </div>
+
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.extra or 0) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Cargo insurance
+          </div>
+
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.cargo or 0) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Fixos rateados
+          </div>
+
+          <div class="weekly-value-number">
+            ${{ "%.2f"|format(preview.fixed_week or 0) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-value">
+
+          <div class="weekly-value-label">
+            Fuel target
+          </div>
+
+          <div class="weekly-value-number kpi-blue">
+            ${{ "%.2f"|format(preview.fuel_target_price or 0) }}
+          </div>
+
+        </div>
+
+
+        <div class="weekly-total">
+
+          <div class="weekly-value">
+
+            <div class="weekly-value-label">
+              Total despesas
             </div>
 
-            <div class="field span-6">
-              <label>Período fim</label>
-              <input class="input" name="period_end" value="{{ row.period_end if row else '' }}" placeholder="2026-03-07">
-            </div>
-
-            <div class="field span-12">
-              <div class="triple-selects">
-
-                <div class="field">
-                  <label>Motorista</label>
-                  <select class="input" name="motorista_id">
-                    <option value="">Selecione</option>
-                    {% for m in motoristas %}
-                      <option value="{{ m.id }}" {% if row and row.motorista_id == m.id %}selected{% endif %}>
-                        {{ m.nome }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label>Dispatcher</label>
-                  <select class="input" name="dispatcher_id">
-                    <option value="">Selecione</option>
-                    {% for d in dispatchers %}
-                      <option value="{{ d.id }}" {% if row and row.dispatcher_id == d.id %}selected{% endif %}>
-                        {{ d.nome }}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-
-                <div class="field">
-                  <label>Veículo / Frota</label>
-                  <select class="input" name="veiculo_id">
-                    <option value="">Selecione</option>
-                    {% for v in veiculos %}
-                      <option value="{{ v.id }}" {% if row and row.veiculo_id == v.id %}selected{% endif %}>
-                        {{ v.nome }}{% if v.placa %} - {{ v.placa }}{% endif %}
-                      </option>
-                    {% endfor %}
-                  </select>
-                </div>
-
-              </div>
-            </div>
-
-            <div class="field span-8">
-              <label>Receita (Revenue)</label>
-              <input class="input" name="revenue" value="{{ row.revenue if row else '' }}" placeholder="12000">
-              <div class="help">
-                Driver {{ "%.2f"|format(driver_percent or 0) }}% • Dispatcher {{ "%.2f"|format(dispatcher_percent or 0) }}%
-              </div>
-            </div>
-
-            <div class="field span-4">
-              <label>Fuel (Total pago)</label>
-              <input class="input" name="fuel" value="{{ row.fuel if row else '' }}" placeholder="2400">
-              <div class="help">Valor total pago na semana</div>
-            </div>
-
-            <div class="field span-12">
-              <label>Despesas extras</label>
-              <input class="input" name="extra_expenses" value="{{ row.extra_expenses if row else '' }}" placeholder="300">
-            </div>
-
-            <div class="field span-4">
-              <label>Cargo insurance (weekly)</label>
-              <input class="input" name="cargo_insurance_weekly" value="{{ row.cargo_insurance_weekly if row else 250.0 }}" placeholder="250">
-            </div>
-
-            <div class="field span-4">
-              <label>Miles</label>
-              <input class="input" name="miles" value="{{ row.miles if row else '' }}" placeholder="2400">
-              <div class="help">Usado para calcular $ / milha</div>
-            </div>
-
-            <div class="field span-4">
-              <label>Gallons</label>
-              <input class="input" name="gallons" value="{{ row.gallons if row else '' }}" placeholder="320">
-              <div class="help">Usado para média do combustível</div>
-            </div>
-
-            <div class="field span-6">
-              <label>Status pagamento</label>
-              {% set ps = (row.payment_status if row else 'pendente') %}
-              <select class="input" name="payment_status">
-                <option value="pendente" {{ 'selected' if ps == 'pendente' else '' }}>Pendente</option>
-                <option value="pago" {{ 'selected' if ps == 'pago' else '' }}>Pago</option>
-              </select>
-            </div>
-
-            <div class="field span-6">
-              <label>Fuel Target do mês</label>
-              <input class="input" value="${{ "%.2f"|format(fuel_target_price or 0) }}" disabled>
-              <div class="help">Configurado em Fixed Costs / Finance Config</div>
-            </div>
-
-            <div class="field span-12">
-              <label>Notas</label>
-              <textarea class="input" name="notes" rows="4" placeholder="Observações da semana...">{{ row.notes if row and row.notes else '' }}</textarea>
+            <div class="weekly-value-number">
+              ${{ "%.2f"|format(preview.total_expenses or 0) }}
             </div>
 
           </div>
 
-          <div class="hr"></div>
 
-          <div class="right">
-            <button class="btn" type="submit">Salvar fechamento</button>
-          </div>
-        </form>
-      </div>
+          <div class="weekly-value">
 
-      <!-- PREVIEW -->
-      <div class="panel card preview-panel">
-        <h3 style="margin:0 0 10px;">Prévia do Cálculo</h3>
-        <p class="muted small" style="margin-top:4px;">
-          Atualiza ao salvar. A prévia usa os valores atualmente carregados.
-        </p>
-
-        <div class="hr"></div>
-
-        {% set net = (preview.net or 0) %}
-        {% set fuel_avg = preview.avg_fuel_price %}
-        {% set fuel_target = preview.fuel_target_price or 0 %}
-        {% set result_pct = preview.result_percent or 0 %}
-        {% set fuel_vs_target = preview.fuel_vs_target_percent %}
-
-        <div class="summary-grid">
-          <div class="sum-box">
-            <div class="sum-title">Net</div>
-            <div class="kpi2 {% if net >= 0 %}kpi-green{% else %}kpi-red{% endif %}">
-              ${{ "%.2f"|format(net) }}
+            <div class="weekly-value-label">
+              Fuel vs target
             </div>
-          </div>
 
-          <div class="sum-box">
-            <div class="sum-title">Result %</div>
-            <div class="kpi2 {% if result_pct >= 20 %}kpi-green{% elif result_pct >= 10 %}kpi-yellow{% elif result_pct >= 0 %}kpi-orange{% else %}kpi-red{% endif %}">
-              {{ "%.2f"|format(result_pct) }}%
-            </div>
-          </div>
-
-          <div class="sum-box">
-            <div class="sum-title">$ / Mile</div>
-            <div class="kpi2 kpi-blue">
-              {% if preview.dollars_per_mile is not none %}
-                ${{ "%.2f"|format(preview.dollars_per_mile) }}
-              {% else %}
-                --
+            <div class="weekly-value-number
+              {% if fuel_vs_target is not none and fuel_vs_target <= 0 %}
+                kpi-green
+              {% elif fuel_vs_target is not none and fuel_vs_target <= 10 %}
+                kpi-yellow
+              {% elif fuel_vs_target is not none %}
+                kpi-orange
               {% endif %}
-            </div>
-          </div>
+            ">
 
-          <div class="sum-box">
-            <div class="sum-title">Avg Fuel Price</div>
-            <div class="kpi2 {% if fuel_avg is not none and fuel_avg <= fuel_target %}kpi-green{% elif fuel_avg is not none and fuel_avg <= (fuel_target * 1.10) %}kpi-yellow{% elif fuel_avg is not none %}kpi-orange{% endif %}">
-              {% if fuel_avg is not none %}
-                ${{ "%.2f"|format(fuel_avg) }}
+              {% if fuel_vs_target is not none %}
+
+                {{ "%.2f"|format(fuel_vs_target) }}%
+
               {% else %}
+
                 --
+
               {% endif %}
+
             </div>
+
           </div>
+
         </div>
 
-        <div class="hr"></div>
 
-        <div class="right" style="justify-content:flex-start;">
-          {% if fuel_avg is none %}
-            <span class="badge gray">Sem dados de combustível</span>
-          {% elif fuel_avg <= fuel_target %}
-            <span class="badge green">Combustível dentro da meta</span>
-          {% elif fuel_avg <= (fuel_target * 1.10) %}
-            <span class="badge yellow">Combustível em atenção</span>
-          {% else %}
-            <span class="badge orange">Combustível acima da meta</span>
-          {% endif %}
-
-          {% if net >= 0 %}
-            <span class="badge green">Semana positiva</span>
-          {% else %}
-            <span class="badge red">Semana negativa</span>
-          {% endif %}
-        </div>
-
-        <div class="hr"></div>
-
-        <div class="muted small">Revenue</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.revenue or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Driver ({{ "%.2f"|format(preview.driver_percent or 0) }}%)</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.driver or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Dispatcher ({{ "%.2f"|format(preview.dispatcher_percent or 0) }}%)</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.dispatcher or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Fuel</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.fuel or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Extras</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.extra or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Cargo insurance</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.cargo or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Fixos rateados (por semana)</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.fixed_week or 0) }}</div>
-
-        <div class="hr"></div>
-
-        <div class="muted small">Total despesas</div>
-        <div class="kpi3">${{ "%.2f"|format(preview.total_expenses or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Fuel target</div>
-        <div class="kpi3 kpi-blue">${{ "%.2f"|format(preview.fuel_target_price or 0) }}</div>
-
-        <div class="muted small" style="margin-top:10px;">Fuel vs target</div>
-        <div class="kpi3 {% if fuel_vs_target is not none and fuel_vs_target <= 0 %}kpi-green{% elif fuel_vs_target is not none and fuel_vs_target <= 10 %}kpi-yellow{% elif fuel_vs_target is not none %}kpi-orange{% endif %}">
-          {% if fuel_vs_target is not none %}
-            {{ "%.2f"|format(fuel_vs_target) }}%
-          {% else %}
-            --
-          {% endif %}
-        </div>
       </div>
 
-    </div>
+    </aside>
+
+
   </div>
+
+</div>
+
 </body>
 </html>

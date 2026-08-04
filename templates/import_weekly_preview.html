@@ -1,0 +1,1092 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Prévia da Importação | IronWay</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <style>
+    *{
+      box-sizing:border-box;
+    }
+
+    body{
+      margin:0;
+      background:
+        radial-gradient(circle at top right, rgba(30,41,90,.28), transparent 35%),
+        #050a14;
+      color:#e5e7eb;
+      font-family:Arial, sans-serif;
+    }
+
+    .import-page{
+      max-width:1450px;
+      margin:0 auto;
+      padding:28px 22px 50px;
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+      margin-bottom:22px;
+    }
+
+    .brand{
+      display:flex;
+      align-items:center;
+      gap:14px;
+    }
+
+    .brand-dot{
+      width:14px;
+      height:14px;
+      border-radius:50%;
+      background:#22c55e;
+      box-shadow:0 0 20px rgba(34,197,94,.55);
+    }
+
+    .brand h1{
+      margin:0;
+      font-size:28px;
+      font-weight:900;
+    }
+
+    .brand p{
+      margin:5px 0 0;
+      color:#7dd3fc;
+      font-size:13px;
+    }
+
+    .btn{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      min-height:44px;
+      padding:0 18px;
+      border-radius:14px;
+      border:1px solid rgba(148,163,184,.18);
+      text-decoration:none;
+      font-weight:900;
+      cursor:pointer;
+      font-size:14px;
+    }
+
+    .btn-back{
+      color:#e5e7eb;
+      background:#0b1220;
+    }
+
+    .btn-green{
+      color:#031008;
+      background:linear-gradient(135deg,#22c55e,#16a34a);
+      border-color:rgba(34,197,94,.45);
+    }
+
+    .btn-green:hover{
+      filter:brightness(1.08);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns:minmax(0,1.65fr) minmax(330px,.75fr);
+      gap:20px;
+    }
+
+    .panel{
+      border:1px solid rgba(148,163,184,.14);
+      border-radius:24px;
+      background:
+        linear-gradient(180deg,rgba(15,23,42,.96),rgba(3,9,20,.96));
+      box-shadow:0 20px 50px rgba(0,0,0,.20);
+      padding:24px;
+    }
+
+    .panel h2{
+      margin:0;
+      font-size:20px;
+    }
+
+    .muted{
+      color:#94a3b8;
+      line-height:1.55;
+    }
+
+    .success-box{
+      display:flex;
+      align-items:center;
+      gap:16px;
+      padding:18px;
+      margin-top:20px;
+      border-radius:18px;
+      border:1px solid rgba(34,197,94,.25);
+      background:rgba(34,197,94,.07);
+    }
+
+    .success-icon{
+      flex:0 0 46px;
+      width:46px;
+      height:46px;
+      display:grid;
+      place-items:center;
+      border-radius:14px;
+      background:rgba(34,197,94,.15);
+      color:#4ade80;
+      font-size:23px;
+      font-weight:900;
+    }
+
+    .success-box strong{
+      display:block;
+      margin-bottom:5px;
+      color:#fff;
+    }
+
+    .success-box span{
+      color:#94a3b8;
+      font-size:13px;
+    }
+
+    .file-card{
+      margin-top:18px;
+      border:1px solid rgba(148,163,184,.14);
+      border-radius:18px;
+      padding:18px;
+      background:rgba(2,6,23,.45);
+    }
+
+    .file-label{
+      color:#64748b;
+      font-size:11px;
+      text-transform:uppercase;
+      font-weight:900;
+      letter-spacing:.7px;
+    }
+
+    .file-name{
+      margin-top:7px;
+      font-size:18px;
+      font-weight:900;
+      word-break:break-word;
+    }
+
+    .file-list{
+      margin-top:10px;
+      display:flex;
+      flex-direction:column;
+      gap:6px;
+    }
+
+    .file-list span{
+      font-size:12px;
+      color:#94a3b8;
+    }
+
+    .divider{
+      height:1px;
+      background:rgba(148,163,184,.12);
+      margin:22px 0;
+    }
+
+    .preview-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+    }
+
+    .badge{
+      display:inline-flex;
+      align-items:center;
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:11px;
+      font-weight:900;
+    }
+
+    .badge-ok{
+      border:1px solid rgba(34,197,94,.25);
+      background:rgba(34,197,94,.08);
+      color:#86efac;
+    }
+
+    .badge-wait{
+      border:1px solid rgba(250,204,21,.25);
+      background:rgba(250,204,21,.08);
+      color:#fde68a;
+    }
+
+    .section-title{
+      margin:22px 0 12px;
+      font-size:13px;
+      color:#7dd3fc;
+      text-transform:uppercase;
+      letter-spacing:.7px;
+      font-weight:900;
+    }
+
+    .fields{
+      display:grid;
+      grid-template-columns:repeat(3,minmax(0,1fr));
+      gap:14px;
+      margin-top:18px;
+    }
+
+    .field{
+      border:1px solid rgba(148,163,184,.12);
+      background:rgba(2,6,23,.32);
+      border-radius:16px;
+      padding:15px;
+      min-height:94px;
+    }
+
+    .field label{
+      display:block;
+      color:#94a3b8;
+      font-size:11px;
+      margin-bottom:8px;
+      font-weight:700;
+    }
+
+    .input{
+      width:100%;
+      min-height:42px;
+      border-radius:11px;
+      border:1px solid rgba(148,163,184,.16);
+      background:#07101f;
+      color:#f8fafc;
+      padding:9px 11px;
+      outline:none;
+      font-size:14px;
+      font-weight:800;
+    }
+
+    .input:focus{
+      border-color:rgba(56,189,248,.55);
+      box-shadow:0 0 0 3px rgba(56,189,248,.08);
+    }
+
+    .input-money{
+      color:#86efac;
+    }
+
+    .period-box{
+      grid-column:span 3;
+    }
+
+    .period-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:10px;
+    }
+
+    .destination{
+      margin-top:22px;
+      padding:18px;
+      border-radius:18px;
+      border:1px solid rgba(56,189,248,.20);
+      background:rgba(56,189,248,.05);
+    }
+
+    .destination-title{
+      font-size:15px;
+      font-weight:900;
+      margin-bottom:5px;
+    }
+
+    .destination-text{
+      font-size:12px;
+      color:#94a3b8;
+      margin-bottom:14px;
+      line-height:1.5;
+    }
+
+    .destination-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+    }
+
+    .destination-grid label{
+      display:block;
+      color:#94a3b8;
+      font-size:11px;
+      margin-bottom:7px;
+      font-weight:800;
+    }
+
+    .info-list{
+      margin-top:20px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
+    .info-item{
+      display:flex;
+      gap:12px;
+      padding:15px;
+      border:1px solid rgba(148,163,184,.12);
+      border-radius:16px;
+      background:rgba(2,6,23,.30);
+    }
+
+    .number{
+      flex:0 0 32px;
+      width:32px;
+      height:32px;
+      display:grid;
+      place-items:center;
+      border-radius:10px;
+      background:rgba(34,197,94,.12);
+      border:1px solid rgba(34,197,94,.22);
+      color:#4ade80;
+      font-weight:900;
+    }
+
+    .info-item strong{
+      display:block;
+      margin-bottom:4px;
+    }
+
+    .info-item span{
+      font-size:12px;
+      color:#94a3b8;
+      line-height:1.5;
+    }
+
+    .actions{
+      display:flex;
+      gap:12px;
+      margin-top:22px;
+      flex-wrap:wrap;
+    }
+
+    .notice{
+      margin-top:18px;
+      padding:14px 16px;
+      border-radius:15px;
+      border:1px solid rgba(56,189,248,.18);
+      background:rgba(56,189,248,.06);
+      color:#bae6fd;
+      font-size:12px;
+      line-height:1.55;
+    }
+
+    .notice-ok{
+      border-color:rgba(34,197,94,.22);
+      background:rgba(34,197,94,.06);
+      color:#bbf7d0;
+    }
+
+    @media(max-width:950px){
+      .grid{
+        grid-template-columns:1fr;
+      }
+
+      .fields{
+        grid-template-columns:1fr 1fr;
+      }
+
+      .period-box{
+        grid-column:span 2;
+      }
+    }
+
+    @media(max-width:600px){
+      .import-page{
+        padding:18px 12px 35px;
+      }
+
+      .topbar{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+
+      .fields{
+        grid-template-columns:1fr;
+      }
+
+      .period-box{
+        grid-column:span 1;
+      }
+
+      .period-grid{
+        grid-template-columns:1fr;
+      }
+
+      .destination-grid{
+        grid-template-columns:1fr;
+      }
+
+      .panel{
+        padding:18px;
+      }
+
+      .actions{
+        flex-direction:column;
+      }
+
+      .actions .btn{
+        width:100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="import-page">
+
+  <div class="topbar">
+
+    <div class="brand">
+
+      <div class="brand-dot"></div>
+
+      <div>
+        <h1>Prévia da Importação</h1>
+        <p>IRONWAY • Conferência antes do fechamento</p>
+      </div>
+
+    </div>
+
+    <a
+      href="{{ url_for('import_weekly_close') }}"
+      class="btn btn-back">
+      ← Voltar
+    </a>
+
+  </div>
+
+
+  <div class="grid">
+
+    <!-- =====================================================
+         CONTEÚDO PRINCIPAL
+         ===================================================== -->
+
+    <section class="panel">
+
+      <h2>Relatório recebido</h2>
+
+      <p class="muted">
+        Os documentos foram processados.
+        Confira e corrija os dados antes de enviá-los
+        para o fechamento semanal.
+      </p>
+
+
+      <div class="success-box">
+
+        <div class="success-icon">✓</div>
+
+        <div>
+          <strong>Upload e leitura concluídos</strong>
+
+          <span>
+            Nenhum valor foi gravado no banco.
+            Você ainda poderá conferir tudo antes de salvar.
+          </span>
+        </div>
+
+      </div>
+
+
+      <div class="file-card">
+
+        <div class="file-label">
+          Arquivos recebidos
+        </div>
+
+        {% if arquivos and arquivos|length > 1 %}
+
+          <div class="file-name">
+            {{ arquivos|length }} arquivos analisados
+          </div>
+
+          <div class="file-list">
+            {% for item in arquivos %}
+              <span>• {{ item.original_name }}</span>
+            {% endfor %}
+          </div>
+
+        {% else %}
+
+          <div class="file-name">
+            {{ arquivo.original_name }}
+          </div>
+
+        {% endif %}
+
+      </div>
+
+
+      <div class="divider"></div>
+
+
+      <div class="preview-title">
+
+        <div>
+
+          <h2>Conferência dos dados</h2>
+
+          <p class="muted" style="margin-bottom:0;">
+            Os campos abaixo são editáveis.
+            Corrija qualquer informação que tenha sido lida incorretamente.
+          </p>
+
+        </div>
+
+        {% if dados %}
+
+          <span class="badge badge-ok">
+            ✓ Leitura concluída
+          </span>
+
+        {% else %}
+
+          <span class="badge badge-wait">
+            Aguardando leitura
+          </span>
+
+        {% endif %}
+
+      </div>
+
+
+      {% if dados %}
+
+      <form
+        method="POST"
+        action="{{ url_for('confirm_import_preview') }}"
+        autocomplete="off">
+
+        <!-- =====================================================
+             DADOS IMPORTADOS
+             ===================================================== -->
+
+        <div class="section-title">
+          Dados identificados
+        </div>
+
+
+        <div class="fields">
+
+          <!-- PERÍODO -->
+
+          <div class="field period-box">
+
+            <label>Período da operação</label>
+
+            <div class="period-grid">
+
+              <input
+                class="input"
+                type="text"
+                name="period_start"
+                placeholder="Início - ex: 2026-07-20"
+                value="{{ dados.period_start or '' }}">
+
+              <input
+                class="input"
+                type="text"
+                name="period_end"
+                placeholder="Fim - ex: 2026-07-26"
+                value="{{ dados.period_end or '' }}">
+
+            </div>
+
+            {% if dados.periodo and not dados.period_start and not dados.period_end %}
+              <div
+                style="
+                  margin-top:9px;
+                  color:#fde68a;
+                  font-size:11px;
+                ">
+                OCR identificou o período:
+                <b>{{ dados.periodo }}</b>.
+                Confira e informe as datas completas acima.
+              </div>
+            {% endif %}
+
+          </div>
+
+
+          <!-- MOTORISTA -->
+
+          <div class="field">
+
+            <label>Motorista</label>
+
+            <input
+              class="input"
+              type="text"
+              name="motorista"
+              placeholder="Nome do motorista"
+              value="{{ dados.motorista or '' }}">
+
+          </div>
+
+
+          <!-- DISPATCHER -->
+
+          <div class="field">
+
+            <label>Dispatcher</label>
+
+            <input
+              class="input"
+              type="text"
+              name="dispatcher"
+              placeholder="Nome do dispatcher"
+              value="{{ dados.dispatcher or '' }}">
+
+          </div>
+
+
+          <!-- VEÍCULO -->
+
+          <div class="field">
+
+            <label>Veículo / Frota</label>
+
+            <input
+              class="input"
+              type="text"
+              name="veiculo"
+              placeholder="Veículo / Truck / Frota"
+              value="{{ dados.veiculo or dados.frota or '' }}">
+
+          </div>
+
+
+          <!-- RECEITA -->
+
+          <div class="field">
+
+            <label>Receita / Revenue</label>
+
+            <input
+              class="input input-money"
+              type="number"
+              step="0.01"
+              min="0"
+              name="revenue"
+              placeholder="0.00"
+              value="{% if dados.revenue is not none %}{{ dados.revenue }}{% elif dados.receita is not none %}{{ dados.receita }}{% endif %}">
+
+          </div>
+
+
+          <!-- COMBUSTÍVEL -->
+
+          <div class="field">
+
+            <label>Combustível / Fuel</label>
+
+            <input
+              class="input input-money"
+              type="number"
+              step="0.01"
+              min="0"
+              name="fuel"
+              placeholder="0.00"
+              value="{% if dados.fuel is not none %}{{ dados.fuel }}{% elif dados.combustivel is not none %}{{ dados.combustivel }}{% endif %}">
+
+          </div>
+
+
+          <!-- MILHAS -->
+
+          <div class="field">
+
+            <label>Milhas</label>
+
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              min="0"
+              name="miles"
+              placeholder="0.00"
+              value="{% if dados.miles is not none %}{{ dados.miles }}{% elif dados.milhas is not none %}{{ dados.milhas }}{% endif %}">
+
+          </div>
+
+
+          <!-- GALÕES -->
+
+          <div class="field">
+
+            <label>Galões</label>
+
+            <input
+              class="input"
+              type="number"
+              step="0.01"
+              min="0"
+              name="gallons"
+              placeholder="0.00"
+              value="{% if dados.gallons is not none %}{{ dados.gallons }}{% elif dados.galoes is not none %}{{ dados.galoes }}{% endif %}">
+
+          </div>
+
+
+          <!-- PREÇO MÉDIO -->
+
+          <div class="field">
+
+            <label>Preço médio / galão</label>
+
+            {% if dados.avg_fuel_price is not none %}
+
+              <input
+                class="input input-money"
+                type="text"
+                value="${{ '%.2f'|format(dados.avg_fuel_price) }}"
+                disabled>
+
+            {% elif dados.preco_medio_galao is not none %}
+
+              <!-- PREÇO MÉDIO -->
+
+              <div class="field">
+
+                <label>Preço médio / galão</label>
+
+                {% if dados.avg_fuel_price is defined and dados.avg_fuel_price is not none %}
+
+                  <input
+                    class="input input-money"
+                    type="text"
+                    value="${{ '%.2f'|format(dados.avg_fuel_price) }}"
+                    disabled>
+
+                {% elif dados.fuel is defined and dados.fuel is not none
+                      and dados.gallons is defined and dados.gallons %}
+
+                  <input
+                    class="input input-money"
+                    type="text"
+                    value="${{ '%.2f'|format((dados.fuel or 0) / dados.gallons) }}"
+                    disabled>
+
+                {% else %}
+
+                  <input
+                    class="input"
+                    type="text"
+                    value="Será calculado pelo fechamento"
+                    disabled>
+
+                {% endif %}
+
+              </div>
+
+            {% elif dados.fuel is not none and dados.gallons %}
+
+              <input
+                class="input input-money"
+                type="text"
+                value="${{ '%.2f'|format((dados.fuel or 0) / dados.gallons) }}"
+                disabled>
+
+            {% else %}
+
+              <input
+                class="input"
+                type="text"
+                value="Será calculado pelo fechamento"
+                disabled>
+
+            {% endif %}
+
+          </div>
+
+        </div>
+
+
+        <!-- =====================================================
+             DESTINO DO FECHAMENTO
+             ===================================================== -->
+
+        <div class="destination">
+
+          <div class="destination-title">
+            Para qual semana estes dados serão enviados?
+          </div>
+
+          <div class="destination-text">
+            Escolha o ano, o mês e a semana.
+            Depois você será levado para a tela normal de fechamento
+            para uma última conferência antes de salvar no banco.
+          </div>
+
+
+          <div class="destination-grid">
+
+            <!-- ANO -->
+
+            <div>
+
+              <label>Ano</label>
+
+              <input
+                class="input"
+                type="number"
+                name="year"
+                min="2020"
+                max="2100"
+                value="2026"
+                required>
+
+            </div>
+
+
+            <!-- MÊS -->
+
+            <div>
+
+              <label>Mês</label>
+
+              <select
+                class="input"
+                name="month"
+                required>
+
+                <option value="">Selecione</option>
+
+                <option value="1">Janeiro</option>
+                <option value="2">Fevereiro</option>
+                <option value="3">Março</option>
+                <option value="4">Abril</option>
+                <option value="5">Maio</option>
+                <option value="6">Junho</option>
+                <option value="7">Julho</option>
+                <option value="8">Agosto</option>
+                <option value="9">Setembro</option>
+                <option value="10">Outubro</option>
+                <option value="11">Novembro</option>
+                <option value="12">Dezembro</option>
+
+              </select>
+
+            </div>
+
+
+            <!-- SEMANA -->
+
+            <div>
+
+              <label>Semana</label>
+
+              <select
+                class="input"
+                name="week_no"
+                required>
+
+                <option value="">Selecione</option>
+                <option value="1">Semana 1</option>
+                <option value="2">Semana 2</option>
+                <option value="3">Semana 3</option>
+                <option value="4">Semana 4</option>
+                <option value="5">Semana 5</option>
+                <option value="6">Semana 6</option>
+
+              </select>
+
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="notice notice-ok">
+
+          <b>Importante:</b>
+
+          clicar em <b>Continuar para fechamento</b>
+          ainda não grava os valores.
+
+          O sistema abrirá a tela normal de fechamento semanal
+          preenchida com estes dados para uma última conferência.
+
+        </div>
+
+
+        <div class="actions">
+
+          <a
+            href="{{ url_for('import_weekly_close') }}"
+            class="btn btn-back">
+
+            Enviar outros arquivos
+
+          </a>
+
+
+          <button
+            type="submit"
+            class="btn btn-green">
+
+            Continuar para fechamento →
+
+          </button>
+
+        </div>
+
+      </form>
+
+
+      {% else %}
+
+        <div class="notice">
+
+          <b>Nenhum dado estruturado encontrado.</b>
+
+          Volte para a importação e tente novamente
+          com outro documento.
+
+        </div>
+
+
+        <div class="actions">
+
+          <a
+            href="{{ url_for('import_weekly_close') }}"
+            class="btn btn-back">
+
+            Enviar outros arquivos
+
+          </a>
+
+        </div>
+
+      {% endif %}
+
+    </section>
+
+
+    <!-- =====================================================
+         PAINEL LATERAL
+         ===================================================== -->
+
+    <aside class="panel">
+
+      <h2>Fluxo da importação</h2>
+
+      <p class="muted">
+        O IronWay mantém uma conferência humana antes
+        de qualquer informação financeira ser gravada.
+      </p>
+
+
+      <div class="info-list">
+
+        <div class="info-item">
+
+          <div class="number">1</div>
+
+          <div>
+
+            <strong>Documentos recebidos</strong>
+
+            <span>
+              Você pode enviar vários JPG, PNG,
+              PDF ou Excel.
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="info-item">
+
+          <div class="number">2</div>
+
+          <div>
+
+            <strong>Leitura automática</strong>
+
+            <span>
+              O sistema consolida as informações
+              encontradas nos documentos.
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="info-item">
+
+          <div class="number">3</div>
+
+          <div>
+
+            <strong>Conferência</strong>
+
+            <span>
+              Corrija qualquer valor que tenha sido
+              interpretado incorretamente.
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="info-item">
+
+          <div class="number">4</div>
+
+          <div>
+
+            <strong>Escolha da semana</strong>
+
+            <span>
+              Informe ano, mês e semana
+              correspondentes aos documentos.
+            </span>
+
+          </div>
+
+        </div>
+
+
+        <div class="info-item">
+
+          <div class="number">5</div>
+
+          <div>
+
+            <strong>Fechamento</strong>
+
+            <span>
+              O IronWay abre o fechamento semanal preenchido.
+              Somente ao clicar em Salvar fechamento
+              os dados entram no banco.
+            </span>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </aside>
+
+  </div>
+
+</div>
+
+</body>
+</html>

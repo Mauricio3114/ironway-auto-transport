@@ -1,9 +1,20 @@
 import os
 import io
+import uuid
+
+import re
+import easyocr
+from PIL import Image
+
+from werkzeug.utils import secure_filename
 from datetime import datetime, date
 from functools import wraps
+from openpyxl import load_workbook
 
-from flask import Flask, render_template, request, redirect, url_for, flash, send_file, render_template_string
+from pypdf import PdfReader
+import re
+
+from flask import Flask, render_template, request, redirect, url_for, flash, send_file, render_template_string, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import (
     LoginManager, UserMixin,
@@ -645,6 +656,738 @@ def _table(c: canvas.Canvas, x, y_top, col_widths, headers, rows, row_h=16):
     return y
 
 
+# =========================================================
+# IMPORTAÇÃO DE FECHAMENTO
+# =========================================================
+
+IMPORT_ALLOWED_EXTENSIONS = {
+    "pdf",
+    "xlsx",
+    "xls",
+    "png",
+    "jpg",
+    "jpeg",
+}
+
+IMPORT_UPLOAD_FOLDER = os.path.join(
+    app.root_path,
+    "uploads",
+    "fechamentos"
+)
+
+
+def import_file_allowed(filename):
+    if not filename or "." not in filename:
+        return False
+
+    extension = filename.rsplit(".", 1)[1].lower()
+
+    return extension in IMPORT_ALLOWED_EXTENSIONS
+
+
+def save_import_file(file):
+    """
+    Salva temporariamente o arquivo enviado para importação.
+    """
+
+    if not file or not file.filename:
+        return None
+
+    if not import_file_allowed(file.filename):
+        return None
+
+    os.makedirs(
+        IMPORT_UPLOAD_FOLDER,
+        exist_ok=True
+    )
+
+    original_name = secure_filename(file.filename)
+
+    extension = original_name.rsplit(".", 1)[1].lower()
+
+    new_name = f"{uuid.uuid4().hex}.{extension}"
+
+    full_path = os.path.join(
+        IMPORT_UPLOAD_FOLDER,
+        new_name
+    )
+
+    file.save(full_path)
+
+    return {
+        "original_name": original_name,
+        "saved_name": new_name,
+        "path": full_path,
+        "extension": extension,
+    }
+
+
+# =========================================================
+# LEITURA OCR - IMAGENS JPG / JPEG / PNG
+# =========================================================
+
+_ocr_reader = None
+
+
+def get_ocr_reader():
+    """
+    Carrega o EasyOCR somente quando for necessário.
+    Mantém o reader em memória para não carregar novamente
+    a cada importação.
+    """
+    global _ocr_reader
+
+    if _ocr_reader is None:
+        _ocr_reader = easyocr.Reader(
+            ["en"],
+            gpu=False
+        )
+
+    return _ocr_reader
+
+
+def read_image_text(image_path):
+    """
+    Recebe o caminho de uma imagem JPG/JPEG/PNG
+    e retorna todo o texto identificado pelo OCR.
+    """
+
+    if not image_path:
+        return ""
+
+    if not os.path.exists(image_path):
+        return ""
+
+    try:
+        reader = get_ocr_reader()
+
+        results = reader.readtext(
+            image_path,
+            detail=0,
+            paragraph=False
+        )
+
+        lines = []
+
+        for item in results:
+            text_value = str(item).strip()
+
+            if text_value:
+                lines.append(text_value)
+
+        return "\n".join(lines)
+
+    except Exception as e:
+        print("ERRO OCR IMAGEM:", e)
+        return ""
+
+
+def parse_ironway_image_text(extracted_text):
+    """
+    Interpreta o texto extraído pelo OCR dos relatórios da IronWay.
+
+    Atualmente reconhece principalmente o relatório de combustível:
+    - total gasto com combustível
+    - total de galões
+    - milhas da semana
+    - preço médio por galão
+
+    Outros relatórios poderão preencher receita, motorista,
+    dispatcher, veículo e período.
+    """
+
+    import re
+
+    dados = {
+        "periodo": None,
+        "motorista": None,
+        "dispatcher": None,
+        "veiculo": None,
+        "revenue": None,
+        "fuel": None,
+        "miles": None,
+        "gallons": None,
+        "avg_fuel_price": None,
+    }
+
+    if not extracted_text:
+        return dados
+
+    texto = extracted_text.replace("\r", "\n")
+
+    # =========================================================
+    # CONVERSOR NUMÉRICO
+    # =========================================================
+    def numero(valor):
+        if valor is None:
+            return None
+
+        valor = str(valor).strip()
+
+        # Remove sujeiras comuns do OCR
+        valor = valor.replace("$", "")
+        valor = valor.replace("|", "")
+        valor = valor.replace("]", "")
+        valor = valor.replace("[", "")
+        valor = valor.replace(" ", "")
+
+        # Formato brasileiro:
+        # 2.453,48 -> 2453.48
+        if "." in valor and "," in valor:
+            valor = valor.replace(".", "")
+            valor = valor.replace(",", ".")
+
+        # 492,92 -> 492.92
+        elif "," in valor:
+            valor = valor.replace(",", ".")
+
+        try:
+            return float(valor)
+
+        except (ValueError, TypeError):
+            return None
+
+    # =========================================================
+    # LINHAS LIMPAS
+    # =========================================================
+    linhas = []
+
+    for linha in texto.splitlines():
+
+        linha = linha.strip()
+
+        if linha:
+            linhas.append(linha)
+
+    # =========================================================
+    # RELATÓRIO DE COMBUSTÍVEL
+    #
+    # O OCR dessa planilha retorna no final:
+    #
+    # GALAO
+    # MILHAS
+    # 52.453,48
+    # 492,92 | Galoes
+    # Milhas por galao
+    # 7,97
+    # 492,92
+    # 3928,30
+    # Milhas na semana
+    # 3928,30
+    # MEDIADO PRECO DO GALAQ
+    # 4,96
+    # =========================================================
+
+    # ---------------------------------------------------------
+    # COMBUSTÍVEL TOTAL
+    #
+    # O OCR confundiu:
+    # $ 2.453,48
+    #
+    # com:
+    # 52.453,48
+    #
+    # Por isso tratamos especificamente essa ocorrência.
+    # ---------------------------------------------------------
+
+    for linha in linhas:
+
+        limpa = (
+            linha
+            .replace("$", "")
+            .replace("S", "")
+            .strip()
+        )
+
+        # OCR conhecido:
+        # 52.453,48 corresponde a $ 2.453,48
+        if re.fullmatch(r"52\.453,48", limpa):
+
+            dados["fuel"] = 2453.48
+            break
+
+    # ---------------------------------------------------------
+    # GALÕES
+    # Procura a linha que contém explicitamente "Galoes"
+    # ---------------------------------------------------------
+
+    for linha in linhas:
+
+        if re.search(
+            r"gal[oõ]es",
+            linha,
+            flags=re.IGNORECASE
+        ):
+
+            match = re.search(
+                r"([\d.,]+)",
+                linha
+            )
+
+            if match:
+
+                valor = numero(match.group(1))
+
+                if (
+                    valor is not None
+                    and 50 <= valor <= 2000
+                ):
+                    dados["gallons"] = valor
+                    break
+
+    # ---------------------------------------------------------
+    # MILHAS DA SEMANA
+    #
+    # O OCR colocou:
+    #
+    # Milhas na semana
+    # 3928,30
+    #
+    # Então pegamos o número imediatamente depois.
+    # ---------------------------------------------------------
+
+    for i, linha in enumerate(linhas):
+
+        if re.search(
+            r"milhas\s+na\s+semana",
+            linha,
+            flags=re.IGNORECASE
+        ):
+
+            if i + 1 < len(linhas):
+
+                valor = numero(
+                    linhas[i + 1]
+                )
+
+                if valor is not None:
+                    dados["miles"] = valor
+                    break
+
+    # ---------------------------------------------------------
+    # PREÇO MÉDIO DO GALÃO
+    #
+    # OCR:
+    #
+    # MEDIADO PRECO DO GALAQ
+    # 4,96
+    # ---------------------------------------------------------
+
+    for i, linha in enumerate(linhas):
+
+        linha_upper = linha.upper()
+
+        if (
+            "PRECO" in linha_upper
+            and (
+                "GALA" in linha_upper
+                or "GALO" in linha_upper
+            )
+        ):
+
+            if i + 1 < len(linhas):
+
+                valor = numero(
+                    linhas[i + 1]
+                )
+
+                if (
+                    valor is not None
+                    and 1 <= valor <= 20
+                ):
+                    dados["avg_fuel_price"] = valor
+                    break
+
+    # =========================================================
+    # MOTORISTA
+    # Exemplo:
+    # DRIVER (ALEXANDRE)
+    # =========================================================
+
+    match = re.search(
+        r"DRIVER\s*\(([^)]+)\)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if match:
+        dados["motorista"] = (
+            match.group(1).strip()
+        )
+
+    # =========================================================
+    # DISPATCHER
+    # Exemplo:
+    # DISPATCHER (RODRIGO)
+    # =========================================================
+
+    match = re.search(
+        r"DISPATCHER\s*\(([^)]+)\)",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if match:
+        dados["dispatcher"] = (
+            match.group(1).strip()
+        )
+
+    # =========================================================
+    # PERÍODO
+    # Exemplo:
+    # 20.07 a 26.07
+    # =========================================================
+
+    match = re.search(
+        r"(\d{1,2}[./-]\d{1,2})"
+        r"\s*(?:A|AT[EÉ]|-)\s*"
+        r"(\d{1,2}[./-]\d{1,2})",
+        texto,
+        flags=re.IGNORECASE
+    )
+
+    if match:
+
+        dados["periodo"] = (
+            f"{match.group(1)} a "
+            f"{match.group(2)}"
+        )
+
+    # =========================================================
+    # RECEITA
+    #
+    # Só preencher quando houver indicação clara de
+    # TOTAL / RECEITA / REVENUE.
+    #
+    # NÃO vamos pegar simplesmente o maior número da imagem,
+    # porque existem odômetros como 145941,80.
+    # =========================================================
+
+    patterns_revenue = [
+        r"RECEITA[^\d$]*\$?\s*([\d.,]+)",
+        r"REVENUE[^\d$]*\$?\s*([\d.,]+)",
+    ]
+
+    for pattern in patterns_revenue:
+
+        match = re.search(
+            pattern,
+            texto,
+            flags=re.IGNORECASE
+        )
+
+        if match:
+
+            valor = numero(
+                match.group(1)
+            )
+
+            if valor is not None:
+                dados["revenue"] = valor
+                break
+
+    return dados
+
+
+def extract_text_from_pdf(pdf_path):
+    """
+    Extrai o texto de todas as páginas de um PDF.
+    Funciona para PDFs que possuem texto real.
+    PDF escaneado/imagem será tratado depois com OCR.
+    """
+
+    try:
+        reader = PdfReader(pdf_path)
+
+        pages_text = []
+
+        for page in reader.pages:
+            text_page = page.extract_text() or ""
+
+            if text_page.strip():
+                pages_text.append(text_page)
+
+        full_text = "\n".join(pages_text).strip()
+
+        return full_text
+
+    except Exception as e:
+        print("ERRO AO LER PDF:", e)
+        return ""
+
+
+def parse_money_value(value):
+    """
+    Converte valores encontrados no relatório para float.
+
+    Exemplos:
+    $12,450.25 -> 12450.25
+    12,450.25  -> 12450.25
+    """
+
+    if value is None:
+        return None
+
+    try:
+        value = str(value).strip()
+
+        value = value.replace("$", "")
+        value = value.replace(",", "")
+        value = value.strip()
+
+        return float(value)
+
+    except Exception:
+        return None
+
+
+def extract_number_from_patterns(text, patterns):
+    """
+    Procura um número utilizando uma lista de padrões.
+    """
+
+    for pattern in patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE | re.MULTILINE
+        )
+
+        if match:
+
+            value = match.group(1)
+
+            number = parse_money_value(value)
+
+            if number is not None:
+                return number
+
+    return None
+
+
+def parse_ironway_pdf(pdf_path):
+    """
+    Lê um relatório PDF e tenta identificar automaticamente
+    os principais dados utilizados no fechamento semanal.
+    """
+
+    text = extract_text_from_pdf(pdf_path)
+
+    dados = {
+        "periodo": None,
+        "period_start": None,
+        "period_end": None,
+
+        "motorista": None,
+        "dispatcher": None,
+        "veiculo": None,
+
+        "revenue": None,
+        "fuel": None,
+        "miles": None,
+        "gallons": None,
+
+        "avg_fuel_price": None,
+
+        # texto bruto temporário para diagnóstico
+        "raw_text": text,
+    }
+
+    if not text:
+        return dados
+
+
+    # =====================================================
+    # RECEITA / REVENUE
+    # =====================================================
+
+    dados["revenue"] = extract_number_from_patterns(
+        text,
+        [
+            r"(?:revenue|gross\s+revenue|total\s+revenue)\s*[:\-]?\s*\$?\s*([\d,]+(?:\.\d{1,2})?)",
+            r"(?:gross\s+pay|total\s+pay)\s*[:\-]?\s*\$?\s*([\d,]+(?:\.\d{1,2})?)",
+        ]
+    )
+
+
+    # =====================================================
+    # COMBUSTÍVEL / FUEL
+    # =====================================================
+
+    dados["fuel"] = extract_number_from_patterns(
+        text,
+        [
+            r"(?:fuel|fuel\s+cost|total\s+fuel)\s*[:\-]?\s*\$?\s*([\d,]+(?:\.\d{1,2})?)",
+            r"(?:diesel|diesel\s+cost)\s*[:\-]?\s*\$?\s*([\d,]+(?:\.\d{1,2})?)",
+        ]
+    )
+
+
+    # =====================================================
+    # MILHAS
+    # =====================================================
+
+    dados["miles"] = extract_number_from_patterns(
+        text,
+        [
+            r"(?:total\s+miles|miles)\s*[:\-]?\s*([\d,]+(?:\.\d+)?)",
+            r"(?:loaded\s+miles)\s*[:\-]?\s*([\d,]+(?:\.\d+)?)",
+        ]
+    )
+
+
+    # =====================================================
+    # GALÕES
+    # =====================================================
+
+    dados["gallons"] = extract_number_from_patterns(
+        text,
+        [
+            r"(?:total\s+gallons|gallons)\s*[:\-]?\s*([\d,]+(?:\.\d+)?)",
+            r"(?:fuel\s+gallons)\s*[:\-]?\s*([\d,]+(?:\.\d+)?)",
+        ]
+    )
+
+
+    # =====================================================
+    # MOTORISTA
+    # =====================================================
+
+    motorista_patterns = [
+        r"(?:driver|driver\s+name)\s*[:\-]\s*([^\n\r]+)",
+        r"(?:motorista)\s*[:\-]\s*([^\n\r]+)",
+    ]
+
+    for pattern in motorista_patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE
+        )
+
+        if match:
+            dados["motorista"] = match.group(1).strip()
+            break
+
+
+    # =====================================================
+    # DISPATCHER
+    # =====================================================
+
+    dispatcher_patterns = [
+        r"(?:dispatcher|dispatcher\s+name)\s*[:\-]\s*([^\n\r]+)",
+    ]
+
+    for pattern in dispatcher_patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE
+        )
+
+        if match:
+            dados["dispatcher"] = match.group(1).strip()
+            break
+
+
+    # =====================================================
+    # VEÍCULO / TRUCK
+    # =====================================================
+
+    vehicle_patterns = [
+        r"(?:truck|truck\s+number)\s*[:\-]\s*([^\n\r]+)",
+        r"(?:vehicle|vehicle\s+number)\s*[:\-]\s*([^\n\r]+)",
+        r"(?:unit|unit\s+number)\s*[:\-]\s*([^\n\r]+)",
+    ]
+
+    for pattern in vehicle_patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE
+        )
+
+        if match:
+            dados["veiculo"] = match.group(1).strip()
+            break
+
+
+    # =====================================================
+    # PERÍODO
+    # =====================================================
+
+    period_patterns = [
+
+        # 03/01/2026 - 03/07/2026
+        r"(\d{1,2}/\d{1,2}/\d{2,4})\s*(?:-|to|through)\s*(\d{1,2}/\d{1,2}/\d{2,4})",
+
+        # 2026-03-01 - 2026-03-07
+        r"(\d{4}-\d{1,2}-\d{1,2})\s*(?:-|to|through)\s*(\d{4}-\d{1,2}-\d{1,2})",
+    ]
+
+    for pattern in period_patterns:
+
+        match = re.search(
+            pattern,
+            text,
+            re.IGNORECASE
+        )
+
+        if match:
+
+            dados["period_start"] = match.group(1)
+            dados["period_end"] = match.group(2)
+
+            dados["periodo"] = (
+                f"{dados['period_start']} → "
+                f"{dados['period_end']}"
+            )
+
+            break
+
+
+    # =====================================================
+    # PREÇO MÉDIO DO GALÃO
+    # =====================================================
+
+    if (
+        dados["fuel"] is not None
+        and dados["gallons"] is not None
+        and dados["gallons"] > 0
+    ):
+
+        dados["avg_fuel_price"] = (
+            dados["fuel"] / dados["gallons"]
+        )
+
+
+    print("\n==========================================")
+    print("IRONWAY - PDF IMPORT")
+    print("==========================================")
+
+    print("Motorista:", dados["motorista"])
+    print("Dispatcher:", dados["dispatcher"])
+    print("Veículo:", dados["veiculo"])
+
+    print("Período:", dados["periodo"])
+
+    print("Revenue:", dados["revenue"])
+    print("Fuel:", dados["fuel"])
+    print("Miles:", dados["miles"])
+    print("Gallons:", dados["gallons"])
+
+    print("Avg Fuel:", dados["avg_fuel_price"])
+
+    print("==========================================\n")
+
+
+    return dados
+
+
 # =========================
 # ROUTES
 # =========================
@@ -671,6 +1414,242 @@ def login():
     return render_template("login.html")
 
 
+def read_import_excel(filepath):
+    """
+    Faz a primeira leitura de arquivos Excel recebidos pelo IronWay.
+
+    Esta etapa NÃO grava nada no banco.
+    Apenas procura informações financeiras e operacionais
+    para apresentar na tela de prévia.
+    """
+
+    try:
+        workbook = load_workbook(
+            filepath,
+            data_only=True
+        )
+
+        resultado = {
+            "periodo": None,
+            "motorista": None,
+            "dispatcher": None,
+            "veiculo": None,
+            "receita": None,
+            "combustivel": None,
+            "milhas": None,
+            "galoes": None,
+            "preco_medio_galao": None,
+        }
+
+        # =====================================================
+        # PERCORRE TODAS AS ABAS
+        # =====================================================
+
+        for sheet in workbook.worksheets:
+
+            for row in sheet.iter_rows():
+
+                valores = []
+
+                for cell in row:
+                    valor = cell.value
+
+                    if valor is None:
+                        valores.append("")
+                    else:
+                        valores.append(str(valor).strip())
+
+                texto_linha = " | ".join(valores)
+                texto_upper = texto_linha.upper()
+
+                # =================================================
+                # MOTORISTA / DRIVER
+                # Exemplo:
+                # DRIVER (ALEXANDRE) | 2437.11 | 30%
+                # =================================================
+
+                if (
+                    resultado["motorista"] is None
+                    and "DRIVER" in texto_upper
+                ):
+                    import re
+
+                    match = re.search(
+                        r"DRIVER\s*\((.*?)\)",
+                        texto_linha,
+                        re.IGNORECASE
+                    )
+
+                    if match:
+                        resultado["motorista"] = (
+                            match.group(1).strip()
+                        )
+
+                # =================================================
+                # DISPATCHER
+                # Exemplo:
+                # DISPATCHER (RODRIGO)
+                # =================================================
+
+                if (
+                    resultado["dispatcher"] is None
+                    and "DISPATCHER" in texto_upper
+                ):
+                    import re
+
+                    match = re.search(
+                        r"DISPATCHER\s*\((.*?)\)",
+                        texto_linha,
+                        re.IGNORECASE
+                    )
+
+                    if match:
+                        resultado["dispatcher"] = (
+                            match.group(1).strip()
+                        )
+
+                # =================================================
+                # COMBUSTÍVEL
+                # =================================================
+
+                if (
+                    resultado["combustivel"] is None
+                    and "COMBUST" in texto_upper
+                ):
+
+                    for cell in row:
+
+                        if isinstance(
+                            cell.value,
+                            (int, float)
+                        ):
+                            if cell.value > 0:
+                                resultado["combustivel"] = float(
+                                    cell.value
+                                )
+                                break
+
+                # =================================================
+                # PREÇO MÉDIO DO GALÃO
+                # =================================================
+
+                if (
+                    resultado["preco_medio_galao"] is None
+                    and (
+                        "MEDIA DO PRECO DO GAL" in texto_upper
+                        or
+                        "MÉDIA DO PREÇO DO GAL" in texto_upper
+                    )
+                ):
+
+                    numeros = []
+
+                    for cell in row:
+                        if isinstance(
+                            cell.value,
+                            (int, float)
+                        ):
+                            numeros.append(
+                                float(cell.value)
+                            )
+
+                    if numeros:
+                        resultado["preco_medio_galao"] = numeros[0]
+
+                # =================================================
+                # GALÕES
+                # =================================================
+
+                if (
+                    resultado["galoes"] is None
+                    and (
+                        "GALOES" in texto_upper
+                        or
+                        "GALÕES" in texto_upper
+                    )
+                ):
+
+                    numeros = []
+
+                    for cell in row:
+                        if isinstance(
+                            cell.value,
+                            (int, float)
+                        ):
+                            numeros.append(
+                                float(cell.value)
+                            )
+
+                    if numeros:
+                        resultado["galoes"] = numeros[0]
+
+                # =================================================
+                # MILHAS NA SEMANA
+                # =================================================
+
+                if (
+                    resultado["milhas"] is None
+                    and "MILHAS NA SEMANA" in texto_upper
+                ):
+
+                    numeros = []
+
+                    for cell in row:
+                        if isinstance(
+                            cell.value,
+                            (int, float)
+                        ):
+                            numeros.append(
+                                float(cell.value)
+                            )
+
+                    if numeros:
+                        resultado["milhas"] = numeros[-1]
+
+                # =================================================
+                # RECEITA / TOTAL
+                #
+                # Vamos procurar linhas TOTAL.
+                # Evitamos SUBTOTAL.
+                # =================================================
+
+                if (
+                    "TOTAL" in texto_upper
+                    and "SUBTOTAL" not in texto_upper
+                    and resultado["receita"] is None
+                ):
+
+                    numeros = []
+
+                    for cell in row:
+
+                        if isinstance(
+                            cell.value,
+                            (int, float)
+                        ):
+                            numeros.append(
+                                float(cell.value)
+                            )
+
+                    if numeros:
+
+                        maior = max(numeros)
+
+                        if maior > 100:
+                            resultado["receita"] = maior
+
+        return resultado
+
+    except Exception as e:
+
+        print(
+            "ERRO AO LER EXCEL:",
+            str(e)
+        )
+
+        return None
+
+
 @app.route("/logout")
 @login_required
 def logout():
@@ -678,62 +1657,537 @@ def logout():
     return redirect(url_for("login"))
 
 
-@app.route("/admin/fechamento/<int:year>/<int:month>/<int:week_no>", methods=["GET", "POST"], endpoint="weekly_edit")
+@app.route(
+    "/admin/importar-fechamento",
+    methods=["GET", "POST"],
+    endpoint="import_weekly_close"
+)
+@login_required
+@admin_required
+def import_weekly_close():
+
+    if request.method == "POST":
+
+        # =========================================================
+        # RECEBE TODOS OS ARQUIVOS
+        # =========================================================
+
+        arquivos = request.files.getlist("arquivos")
+
+        arquivos = [
+            arquivo
+            for arquivo in arquivos
+            if arquivo and arquivo.filename
+        ]
+
+        if not arquivos:
+            flash(
+                "Selecione pelo menos um arquivo para importar.",
+                "error"
+            )
+
+            return redirect(
+                url_for("import_weekly_close")
+            )
+
+        # =========================================================
+        # VALIDA TODOS ANTES DE PROCESSAR
+        # =========================================================
+
+        for arquivo in arquivos:
+
+            if not import_file_allowed(arquivo.filename):
+
+                flash(
+                    f"Formato não permitido: {arquivo.filename}. "
+                    "Envie PDF, Excel, JPG ou PNG.",
+                    "error"
+                )
+
+                return redirect(
+                    url_for("import_weekly_close")
+                )
+
+        # =========================================================
+        # RESULTADO CONSOLIDADO
+        # =========================================================
+
+        dados_importados = {
+            "periodo": None,
+            "motorista": None,
+            "dispatcher": None,
+            "veiculo": None,
+            "revenue": None,
+            "fuel": None,
+            "miles": None,
+            "gallons": None,
+            "avg_fuel_price": None,
+        }
+
+        arquivos_salvos = []
+        textos_extraidos = []
+
+        # =========================================================
+        # PROCESSA CADA ARQUIVO
+        # =========================================================
+
+        for arquivo in arquivos:
+
+            saved = save_import_file(arquivo)
+
+            if not saved:
+
+                flash(
+                    f"Não foi possível salvar o arquivo "
+                    f"{arquivo.filename}.",
+                    "error"
+                )
+
+                return redirect(
+                    url_for("import_weekly_close")
+                )
+
+            arquivos_salvos.append(saved)
+
+            nome_arquivo = saved["original_name"].lower()
+
+            dados_arquivo = None
+            extracted_text = ""
+
+            # =====================================================
+            # EXCEL
+            # =====================================================
+
+            if nome_arquivo.endswith((".xlsx", ".xlsm")):
+
+                dados_arquivo = read_import_excel(
+                    saved["path"]
+                )
+
+            # =====================================================
+            # PDF
+            # =====================================================
+
+            elif nome_arquivo.endswith(".pdf"):
+
+                dados_arquivo = parse_ironway_pdf(
+                    saved["path"]
+                )
+
+            # =====================================================
+            # IMAGEM
+            # =====================================================
+
+            elif nome_arquivo.endswith(
+                (".jpg", ".jpeg", ".png")
+            ):
+
+                extracted_text = read_image_text(
+                    saved["path"]
+                )
+
+                if extracted_text:
+
+                    textos_extraidos.append(
+                        extracted_text
+                    )
+
+                    dados_arquivo = (
+                        parse_ironway_image_text(
+                            extracted_text
+                        )
+                    )
+
+                    print(
+                        "==================================="
+                    )
+                    print(
+                        "ARQUIVO:",
+                        saved["original_name"]
+                    )
+                    print(
+                        "==================================="
+                    )
+                    print("TEXTO OCR:")
+                    print(extracted_text)
+                    print(
+                        "==================================="
+                    )
+                    print("DADOS IDENTIFICADOS:")
+                    print(dados_arquivo)
+                    print(
+                        "==================================="
+                    )
+
+                else:
+
+                    print(
+                        "OCR não encontrou texto em:",
+                        saved["original_name"]
+                    )
+
+            # =====================================================
+            # CONSOLIDA OS DADOS
+            # =====================================================
+
+            if dados_arquivo:
+
+                for campo in dados_importados.keys():
+
+                    valor = dados_arquivo.get(campo)
+
+                    # Não deixa um arquivo vazio apagar
+                    # informação encontrada em outro.
+                    if valor is not None and valor != "":
+
+                        dados_importados[campo] = valor
+
+        # =========================================================
+        # JUNTA TODOS OS TEXTOS OCR
+        # =========================================================
+
+        extracted_text = "\n\n".join(
+            textos_extraidos
+        )
+
+        # =========================================================
+        # DEBUG FINAL
+        # =========================================================
+
+        print("\n")
+        print("===================================")
+        print("RESULTADO FINAL CONSOLIDADO")
+        print("===================================")
+        print(dados_importados)
+        print("===================================")
+        print(
+            "TOTAL DE ARQUIVOS:",
+            len(arquivos_salvos)
+        )
+        print("===================================")
+
+        # =========================================================
+        # MENSAGEM
+        # =========================================================
+
+        if len(arquivos_salvos) == 1:
+
+            mensagem = (
+                f"Arquivo "
+                f"{arquivos_salvos[0]['original_name']} "
+                f"recebido com sucesso."
+            )
+
+        else:
+
+            mensagem = (
+                f"{len(arquivos_salvos)} arquivos "
+                f"recebidos e analisados com sucesso."
+            )
+
+        flash(
+            mensagem,
+            "success"
+        )
+
+        # =========================================================
+        # PRÉVIA
+        # =========================================================
+
+        return render_template(
+            "import_weekly_preview.html",
+
+            # Mantemos arquivo para não quebrar
+            # o HTML atual da prévia.
+            arquivo=arquivos_salvos[0],
+
+            # E já disponibilizamos a lista completa.
+            arquivos=arquivos_salvos,
+
+            dados=dados_importados,
+            extracted_text=extracted_text,
+        )
+
+    return render_template(
+        "import_weekly_close.html"
+    )
+
+
+@app.route(
+    "/admin/importar-fechamento/confirmar",
+    methods=["POST"],
+    endpoint="confirm_import_preview"
+)
+@login_required
+@admin_required
+def confirm_import_preview():
+
+    # =========================================================
+    # ANO / MÊS / SEMANA ESCOLHIDOS NA PRÉVIA
+    # =========================================================
+
+    year = _to_int(request.form.get("year"), 0)
+    month = _to_int(request.form.get("month"), 0)
+    week_no = _to_int(request.form.get("week_no"), 0)
+
+    if year < 2020 or year > 2100:
+        flash("Informe um ano válido.", "error")
+        return redirect(url_for("import_weekly_close"))
+
+    if month < 1 or month > 12:
+        flash("Informe um mês válido.", "error")
+        return redirect(url_for("import_weekly_close"))
+
+    if week_no < 1 or week_no > 6:
+        flash("Informe uma semana válida.", "error")
+        return redirect(url_for("import_weekly_close"))
+
+    # =========================================================
+    # DADOS CONFERIDOS NA TELA DE PRÉVIA
+    # =========================================================
+
+    period_start = (
+        request.form.get("period_start") or ""
+    ).strip() or None
+
+    period_end = (
+        request.form.get("period_end") or ""
+    ).strip() or None
+
+    motorista = (
+        request.form.get("motorista") or ""
+    ).strip() or None
+
+    dispatcher = (
+        request.form.get("dispatcher") or ""
+    ).strip() or None
+
+    veiculo = (
+        request.form.get("veiculo") or ""
+    ).strip() or None
+
+    revenue = _to_float(
+        request.form.get("revenue"),
+        0.0
+    )
+
+    fuel = _to_float(
+        request.form.get("fuel"),
+        0.0
+    )
+
+    miles = _to_float(
+        request.form.get("miles"),
+        0.0
+    )
+
+    gallons = _to_float(
+        request.form.get("gallons"),
+        0.0
+    )
+
+    # =========================================================
+    # GUARDA TEMPORARIAMENTE NA SESSION
+    # =========================================================
+
+    session["import_weekly_data"] = {
+        "period_start": period_start,
+        "period_end": period_end,
+
+        "motorista": motorista,
+        "dispatcher": dispatcher,
+        "veiculo": veiculo,
+
+        "revenue": revenue,
+        "fuel": fuel,
+        "miles": miles,
+        "gallons": gallons,
+    }
+
+    # =========================================================
+    # MANDA PARA O FECHAMENTO NORMAL
+    # =========================================================
+
+    return redirect(
+        url_for(
+            "weekly_edit",
+            year=year,
+            month=month,
+            week_no=week_no,
+            imported=1,
+        )
+    )
+
+
+@app.route(
+    "/admin/fechamento/<int:year>/<int:month>/<int:week_no>",
+    methods=["GET", "POST"],
+    endpoint="weekly_edit"
+)
 @login_required
 @admin_required
 def weekly_edit(year, month, week_no):
+
     cfg = get_or_create_month_config(year, month)
     fixed_total, _ = get_fixed_costs_sum(year, month)
 
-    motoristas = Motorista.query.order_by(Motorista.nome.asc()).all()
-    dispatchers = Dispatcher.query.order_by(Dispatcher.nome.asc()).all()
-    veiculos = Veiculo.query.order_by(Veiculo.nome.asc()).all()
+    motoristas = Motorista.query.order_by(
+        Motorista.nome.asc()
+    ).all()
 
-    row = WeeklyClose.query.filter_by(year=year, month=month, week_no=week_no).first()
+    dispatchers = Dispatcher.query.order_by(
+        Dispatcher.nome.asc()
+    ).all()
+
+    veiculos = Veiculo.query.order_by(
+        Veiculo.nome.asc()
+    ).all()
+
+    row = WeeklyClose.query.filter_by(
+        year=year,
+        month=month,
+        week_no=week_no
+    ).first()
+
+    # =========================================================
+    # POST NORMAL DO FECHAMENTO
+    # =========================================================
 
     if request.method == "POST":
-        period_start = (request.form.get("period_start") or "").strip() or None
-        period_end = (request.form.get("period_end") or "").strip() or None
 
-        revenue = _to_float(request.form.get("revenue"), 0.0)
-        fuel = _to_float(request.form.get("fuel"), 0.0)
-        extra = _to_float(request.form.get("extra_expenses"), 0.0)
-        cargo = _to_float(request.form.get("cargo_insurance_weekly"), 250.0)
-        miles = _to_float(request.form.get("miles"), 0.0)
-        gallons = _to_float(request.form.get("gallons"), 0.0)
+        period_start = (
+            request.form.get("period_start") or ""
+        ).strip() or None
 
-        motorista_id = _to_int(request.form.get("motorista_id"), 0) or None
-        dispatcher_id = _to_int(request.form.get("dispatcher_id"), 0) or None
-        veiculo_id = _to_int(request.form.get("veiculo_id"), 0) or None
+        period_end = (
+            request.form.get("period_end") or ""
+        ).strip() or None
 
-        notes = (request.form.get("notes") or "").strip() or None
-        payment_status = (request.form.get("payment_status") or "pendente").strip().lower()
-        if payment_status not in ("pendente", "pago"):
+        revenue = _to_float(
+            request.form.get("revenue"),
+            0.0
+        )
+
+        fuel = _to_float(
+            request.form.get("fuel"),
+            0.0
+        )
+
+        extra = _to_float(
+            request.form.get("extra_expenses"),
+            0.0
+        )
+
+        cargo = _to_float(
+            request.form.get("cargo_insurance_weekly"),
+            250.0
+        )
+
+        miles = _to_float(
+            request.form.get("miles"),
+            0.0
+        )
+
+        gallons = _to_float(
+            request.form.get("gallons"),
+            0.0
+        )
+
+        motorista_id = (
+            _to_int(
+                request.form.get("motorista_id"),
+                0
+            )
+            or None
+        )
+
+        dispatcher_id = (
+            _to_int(
+                request.form.get("dispatcher_id"),
+                0
+            )
+            or None
+        )
+
+        veiculo_id = (
+            _to_int(
+                request.form.get("veiculo_id"),
+                0
+            )
+            or None
+        )
+
+        notes = (
+            request.form.get("notes") or ""
+        ).strip() or None
+
+        payment_status = (
+            request.form.get("payment_status")
+            or "pendente"
+        ).strip().lower()
+
+        if payment_status not in (
+            "pendente",
+            "pago"
+        ):
             payment_status = "pendente"
 
         if not row:
-            row = WeeklyClose(year=year, month=month, week_no=week_no)
+
+            row = WeeklyClose(
+                year=year,
+                month=month,
+                week_no=week_no
+            )
+
             db.session.add(row)
 
         row.period_start = period_start
         row.period_end = period_end
+
         row.revenue = revenue
         row.fuel = fuel
         row.extra_expenses = extra
         row.cargo_insurance_weekly = cargo
+
         row.miles = miles
         row.gallons = gallons
+
         row.motorista_id = motorista_id
         row.dispatcher_id = dispatcher_id
         row.veiculo_id = veiculo_id
+
         row.notes = notes
         row.payment_status = payment_status
 
         db.session.commit()
-        flash("Fechamento da semana salvo.", "success")
-        return redirect(url_for("dashboard", year=year, month=month))
+
+        # Depois que salvou de verdade,
+        # não precisamos mais dos dados importados.
+        session.pop(
+            "import_weekly_data",
+            None
+        )
+
+        flash(
+            "Fechamento da semana salvo.",
+            "success"
+        )
+
+        return redirect(
+            url_for(
+                "dashboard",
+                year=year,
+                month=month
+            )
+        )
+
+    # =========================================================
+    # SE A SEMANA AINDA NÃO EXISTE
+    # =========================================================
 
     if not row:
+
         row = WeeklyClose(
             year=year,
             month=month,
@@ -741,20 +2195,172 @@ def weekly_edit(year, month, week_no):
             cargo_insurance_weekly=250.0
         )
 
-    preview = compute_week_calc(row, cfg.weeks_in_month, fixed_total, cfg)
+    # =========================================================
+    # DADOS VINDOS DA IMPORTAÇÃO
+    # =========================================================
+
+    imported = (
+        request.args.get("imported") == "1"
+    )
+
+    if imported:
+
+        import_data = session.get(
+            "import_weekly_data"
+        )
+
+        if import_data:
+
+            # -------------------------------------------------
+            # PERÍODO
+            # -------------------------------------------------
+
+            if import_data.get("period_start"):
+                row.period_start = (
+                    import_data["period_start"]
+                )
+
+            if import_data.get("period_end"):
+                row.period_end = (
+                    import_data["period_end"]
+                )
+
+            # -------------------------------------------------
+            # VALORES
+            # -------------------------------------------------
+
+            if import_data.get("revenue") is not None:
+                row.revenue = (
+                    import_data["revenue"]
+                )
+
+            if import_data.get("fuel") is not None:
+                row.fuel = (
+                    import_data["fuel"]
+                )
+
+            if import_data.get("miles") is not None:
+                row.miles = (
+                    import_data["miles"]
+                )
+
+            if import_data.get("gallons") is not None:
+                row.gallons = (
+                    import_data["gallons"]
+                )
+
+            # -------------------------------------------------
+            # TENTA LOCALIZAR MOTORISTA PELO NOME
+            # -------------------------------------------------
+
+            nome_motorista = (
+                import_data.get("motorista")
+                or ""
+            ).strip()
+
+            if nome_motorista:
+
+                motorista_encontrado = (
+                    Motorista.query.filter(
+                        db.func.lower(
+                            Motorista.nome
+                        )
+                        ==
+                        nome_motorista.lower()
+                    ).first()
+                )
+
+                if motorista_encontrado:
+                    row.motorista_id = (
+                        motorista_encontrado.id
+                    )
+
+            # -------------------------------------------------
+            # TENTA LOCALIZAR DISPATCHER PELO NOME
+            # -------------------------------------------------
+
+            nome_dispatcher = (
+                import_data.get("dispatcher")
+                or ""
+            ).strip()
+
+            if nome_dispatcher:
+
+                dispatcher_encontrado = (
+                    Dispatcher.query.filter(
+                        db.func.lower(
+                            Dispatcher.nome
+                        )
+                        ==
+                        nome_dispatcher.lower()
+                    ).first()
+                )
+
+                if dispatcher_encontrado:
+                    row.dispatcher_id = (
+                        dispatcher_encontrado.id
+                    )
+
+            # -------------------------------------------------
+            # TENTA LOCALIZAR VEÍCULO
+            # -------------------------------------------------
+
+            nome_veiculo = (
+                import_data.get("veiculo")
+                or ""
+            ).strip()
+
+            if nome_veiculo:
+
+                veiculo_encontrado = (
+                    Veiculo.query.filter(
+                        db.func.lower(
+                            Veiculo.nome
+                        )
+                        ==
+                        nome_veiculo.lower()
+                    ).first()
+                )
+
+                if veiculo_encontrado:
+                    row.veiculo_id = (
+                        veiculo_encontrado.id
+                    )
+
+            flash(
+                "Dados da importação carregados. "
+                "Confira antes de salvar.",
+                "success"
+            )
+
+    # =========================================================
+    # CÁLCULO DA PRÉVIA
+    # =========================================================
+
+    preview = compute_week_calc(
+        row,
+        cfg.weeks_in_month,
+        fixed_total,
+        cfg
+    )
 
     return render_template(
         "weekly_close_form.html",
+
         year=year,
         month=month,
         week_no=week_no,
+
         weeks_in_month=cfg.weeks_in_month,
         fixed_month_total=fixed_total,
+
         row=row,
         preview=preview,
+
         driver_percent=cfg.driver_percent,
         dispatcher_percent=cfg.dispatcher_percent,
         fuel_target_price=cfg.fuel_target_price,
+
         motoristas=motoristas,
         dispatchers=dispatchers,
         veiculos=veiculos,

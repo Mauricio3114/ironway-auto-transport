@@ -572,6 +572,11 @@ body{
           <span>Motoristas</span>
         </a>
 
+        <a href="{{ url_for('import_weekly_close') }}" class="side-link {% if request.endpoint == 'import_weekly_close' %}active{% endif %}">
+          <span class="side-icon">📥</span>
+          <span>Importar Fechamento</span>
+        </a>
+
         <a href="{{ url_for('admin_dispatchers') }}" class="side-link {% if request.endpoint == 'admin_dispatchers' %}active{% endif %}">
           <span class="side-icon">🧑‍💼</span>
           <span>Dispatchers</span>
