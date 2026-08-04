@@ -3,7 +3,6 @@ import io
 import uuid
 
 import re
-import easyocr
 from PIL import Image
 
 from werkzeug.utils import secure_filename
@@ -726,18 +725,36 @@ def save_import_file(file):
 # LEITURA OCR - IMAGENS JPG / JPEG / PNG
 # =========================================================
 
+
 _ocr_reader = None
 
 
 def get_ocr_reader():
     """
-    Carrega o EasyOCR somente quando for necessário.
-    Mantém o reader em memória para não carregar novamente
-    a cada importação.
+    Carrega EasyOCR/PyTorch somente quando uma imagem
+    realmente precisar ser processada.
+
+    IMPORTANTE:
+    Não importar easyocr no topo do app.py.
+    Isso evita carregar PyTorch durante a inicialização
+    normal do Gunicorn/Render.
     """
     global _ocr_reader
 
     if _ocr_reader is None:
+
+        print(
+            "=========================================="
+        )
+        print(
+            "IRONWAY OCR - carregando EasyOCR sob demanda"
+        )
+        print(
+            "=========================================="
+        )
+
+        import easyocr
+
         _ocr_reader = easyocr.Reader(
             ["en"],
             gpu=False
