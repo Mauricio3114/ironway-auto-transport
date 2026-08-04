@@ -2,25 +2,134 @@
 <html lang="pt-br">
 <head>
   <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, viewport-fit=cover"
+  />
+
   <title>{{ title or "IronWay" }}</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- ======================================================
+       PWA / IRONWAY
+  ======================================================= -->
+
+  <meta name="theme-color" content="#070b16">
+
+  <meta
+    name="description"
+    content="IronWay Auto Transport - Gestão financeira e fechamento operacional."
+  >
+
+  <!-- Android / Chrome -->
+  <link
+    rel="manifest"
+    href="{{ url_for('static', filename='manifest.json') }}"
+  >
+
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="192x192"
+    href="{{ url_for('static', filename='icons/icon-192.png') }}"
+  >
+
+  <link
+    rel="icon"
+    type="image/png"
+    sizes="512x512"
+    href="{{ url_for('static', filename='icons/icon-512.png') }}"
+  >
+
+  <!-- iPhone / iPad -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+
+  <meta
+    name="apple-mobile-web-app-status-bar-style"
+    content="black-translucent"
+  >
+
+  <meta
+    name="apple-mobile-web-app-title"
+    content="IronWay"
+  >
+
+  <link
+    rel="apple-touch-icon"
+    href="{{ url_for('static', filename='icons/icon-192.png') }}"
+  >
+
+  <!-- CSS -->
+  <link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}"
+  >
+
 </head>
+
 <body>
 
   <div class="container">
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
+
         <div class="flash-wrap">
+
           {% for category, msg in messages %}
-            <div class="flash {{ category }}">{{ msg }}</div>
+
+            <div class="flash {{ category }}">
+              {{ msg }}
+            </div>
+
           {% endfor %}
+
         </div>
+
       {% endif %}
     {% endwith %}
 
-    {% block content %}{% endblock %}
+
+    {% block content %}
+    {% endblock %}
+
   </div>
+
+
+  <!-- ======================================================
+       SERVICE WORKER
+  ======================================================= -->
+
+  <script>
+
+    if ("serviceWorker" in navigator) {
+
+      window.addEventListener("load", function () {
+
+        navigator.serviceWorker
+          .register("/service-worker.js")
+          .then(function (registration) {
+
+            console.log(
+              "IronWay PWA ativo:",
+              registration.scope
+            );
+
+          })
+          .catch(function (error) {
+
+            console.error(
+              "Erro ao registrar PWA:",
+              error
+            );
+
+          });
+
+      });
+
+    }
+
+  </script>
 
 </body>
 </html>

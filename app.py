@@ -10,6 +10,8 @@ from datetime import datetime, date
 from functools import wraps
 from openpyxl import load_workbook
 
+from flask import send_from_directory
+
 from pypdf import PdfReader
 import re
 
@@ -2218,6 +2220,7 @@ def confirm_import_preview():
     )
 
 
+
 @app.route(
     "/admin/fechamento/<int:year>/<int:month>/<int:week_no>",
     methods=["GET", "POST"],
@@ -3733,6 +3736,15 @@ with app.app_context():
         )
         db.session.add(admin)
         db.session.commit()
+
+
+@app.route("/service-worker.js")
+def service_worker():
+    return send_from_directory(
+        app.root_path,
+        "service-worker.js",
+        mimetype="application/javascript"
+    )
 
 
 # =========================
