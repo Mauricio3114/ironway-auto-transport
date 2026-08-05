@@ -925,30 +925,79 @@ body{
   }
 
   .grid > .card.w12:last-child{
-    overflow-x:auto;
-    -webkit-overflow-scrolling:touch;
+    overflow:visible;
   }
 
   .grid > .card.w12:last-child > div:first-child{
     min-width:0;
+    align-items:flex-start !important;
   }
 
-  .grid > .card.w12:last-child h3{
-    font-size:15px;
-  }
-
+  .grid > .card.w12:last-child h3{ font-size:15px; }
   .grid > .card.w12:last-child .small{
     font-size:9px;
+    max-width:180px;
+    text-align:right;
   }
 
   .table{
-    min-width:850px;
+    min-width:0;
+    width:100%;
+    display:block;
     font-size:11px;
   }
 
-  .table th,
+  .table thead{ display:none; }
+  .table tbody{
+    display:grid;
+    gap:10px;
+    width:100%;
+  }
+
+  .table tr{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+    padding:10px 12px;
+    box-sizing:border-box;
+    border:1px solid rgba(148,163,184,.12);
+    border-radius:14px;
+    background:rgba(2,6,23,.24);
+  }
+
   .table td{
-    padding:8px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    min-width:0;
+    padding:8px 6px;
+    border-bottom:1px solid rgba(148,163,184,.08);
+    text-align:right;
+  }
+
+  .table td::before{
+    content:attr(data-label);
+    flex:0 0 auto;
+    color:#94a3b8;
+    font-size:9px;
+    font-weight:700;
+    text-align:left;
+  }
+
+  .table .weekly-actions{
+    display:flex !important;
+    grid-column:1 / -1;
+    justify-content:flex-end !important;
+    flex-wrap:wrap;
+    padding-top:10px;
+    border-bottom:none;
+  }
+
+  .table .weekly-actions::before{ margin-right:auto; }
+  .table .weekly-actions .btn{
+    padding:7px 10px;
+    font-size:10px;
   }
 
 
@@ -1165,7 +1214,7 @@ body{
             <div class="sum-box">
               <div class="sum-title">Semana</div>
               <div class="kpi2">{{ current_week.label }}</div>
-              <div class="muted small">{{ current_week.period }}</div>
+              <div class="muted small">{{ current_week.period if current_week.period and "None" not in current_week.period|string else "--" }}</div>
             </div>
 
             <div class="sum-box">
@@ -1549,14 +1598,14 @@ body{
             <tbody>
               {% for w in weeks %}
                 <tr>
-                  <td><b>{{ w.label }}</b></td>
-                  <td class="muted">{{ w.period }}</td>
-                  <td>${{ "%.2f"|format(w.calc.revenue or 0) }}</td>
-                  <td>${{ "%.2f"|format(w.calc.total_expenses or 0) }}</td>
-                  <td style="font-weight:900;color:{{ '#16a34a' if (w.calc.net or 0) >= 0 else '#ef4444' }};">
+                  <td data-label="Semana"><b>{{ w.label }}</b></td>
+                  <td class="muted" data-label="Período">{{ w.period if w.period and "None" not in w.period|string else "--" }}</td>
+                  <td data-label="Receita">${{ "%.2f"|format(w.calc.revenue or 0) }}</td>
+                  <td data-label="Despesas">${{ "%.2f"|format(w.calc.total_expenses or 0) }}</td>
+                  <td data-label="Líquido" style="font-weight:900;color:{{ '#16a34a' if (w.calc.net or 0) >= 0 else '#ef4444' }};">
                     ${{ "%.2f"|format(w.calc.net or 0) }}
                   </td>
-                  <td>
+                  <td data-label="$ / Milha">
                     {% if w.calc.dollars_per_mile is not none %}
                       <span class="pill info">${{ "%.2f"|format(w.calc.dollars_per_mile) }}</span>
                     {% else %}
